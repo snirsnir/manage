@@ -198,7 +198,7 @@ function defaultStation(id, name, order) {
     videoUrl:            '',
     activityDuration:    25,
     setupDuration:       7,
-    boardingDuration:    5,
+    boardingDuration:    3,
     autoTransitionDelay: 3,
     status:              'idle',
     sessionStartTime:    0,

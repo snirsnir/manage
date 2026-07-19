@@ -76,19 +76,28 @@
       font-size:.85rem;color:#ffe082;flex-shrink:0;display:none;
     }
 
-    /* Alert overlay */
-    .alert-overlay {
-      position:fixed;inset:0;z-index:500;
-      background:rgba(244,67,54,.15);
-      border:4px solid var(--closed);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:16px;padding:24px;text-align:center;
-      animation:flash-border 1s ease-in-out infinite;
+    /* Auto-cycle indicator */
+    .auto-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(0,229,255,.08); border: 1px solid rgba(0,229,255,.25);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: .78rem; font-weight: 700; color: var(--cyan);
     }
-    @keyframes flash-border { 0%,100%{border-color:var(--closed)} 50%{border-color:rgba(244,67,54,.2)} }
-    .alert-overlay h2 { font-size:1.8rem;font-weight:900;color:var(--closed); }
-    .alert-overlay p  { color:var(--text-200);font-size:1rem; }
-    .alert-overlay .btn { min-width:200px; }
+    .auto-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--cyan);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+
+    /* Transitioning overlay */
+    .transitioning-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(3,3,26,.85); backdrop-filter: blur(8px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; text-align: center;
+    }
+    .transitioning-overlay .spinner { width: 56px; height: 56px; }
+    .transitioning-overlay p { color: var(--cyan); font-size: 1.1rem; font-weight: 600; }
 
     @media(max-width:380px) {
       #main-timer { font-size:3.5rem; }
@@ -132,11 +141,18 @@
     <button class="btn" id="btn-main" disabled>טוען...</button>
   </div>
 
-  <!-- Extend time row (hidden when not running) -->
-  <div class="extend-row" id="extend-row" style="display:none;">
-    <button class="btn btn--ghost" onclick="doExtend(5)">+5 דקות</button>
-    <button class="btn btn--ghost" onclick="doExtend(10)">+10 דקות</button>
-    <button class="btn btn--warning btn--sm" onclick="doEarlyEnd()">סיים מוקדם</button>
+  <!-- Auto cycle indicator + extend row -->
+  <div id="controls-row" style="display:none;flex-shrink:0;">
+    <!-- Running controls -->
+    <div id="extend-row" class="extend-row" style="display:none;">
+      <button class="btn btn--ghost" onclick="doExtend(5)">+5 דקות</button>
+      <button class="btn btn--ghost" onclick="doExtend(10)">+10 דקות</button>
+      <button class="btn btn--warning btn--sm" onclick="doSkipToNext()">דלג ▶</button>
+    </div>
+    <!-- Auto badge -->
+    <div style="display:flex;justify-content:center;margin-top:8px;">
+      <div class="auto-badge"><div class="dot"></div>מחזור אוטומטי פעיל</div>
+    </div>
   </div>
 
   <!-- Next session -->
@@ -145,15 +161,20 @@
     <span id="next-rel" style="color:var(--text-400);font-size:.8rem;"></span>
   </div>
 
+  <!-- Stop cycle (shown when cycle is running) -->
+  <div id="stop-row" style="display:none;flex-shrink:0;text-align:center;">
+    <button class="btn btn--ghost btn--sm" onclick="doStop()" style="color:var(--closed);border-color:rgba(244,67,54,.3);">
+      ⏹ עצור מחזור
+    </button>
+  </div>
+
 </div>
 </div>
 
-<!-- Forgot-me alert overlay (shown when timer expired > autoTransitionDelay minutes) -->
-<div id="alert-overlay" style="display:none;" class="alert-overlay">
-  <h2>⏰ האם סיימתם?</h2>
-  <p>הטיימר פג לפני מספר דקות.<br>אנא בחרו פעולה:</p>
-  <button class="btn btn--success btn--lg" onclick="doAction('setup')">✅ כן, הפעילות הסתיימה</button>
-  <button class="btn btn--ghost" onclick="dismissAlert()">אנחנו עדיין פעילים</button>
+<!-- Transitioning overlay -->
+<div id="transitioning-overlay" class="transitioning-overlay" style="display:none;">
+  <div class="spinner"></div>
+  <p id="transitioning-label">עובר לשלב הבא...</p>
 </div>
 
 <div id="toast-container"></div>
@@ -168,152 +189,172 @@ if (!stationId) {
   document.body.innerHTML = '<div style="padding:40px;text-align:center;"><h2>לא צוין מתחם</h2><p style="color:#94a3b8;margin-top:8px;">הוסף <code>?station=ID</code> לכתובת</p><a href="index.html" style="color:#00e5ff;">לדף הבית</a></div>';
 }
 
-let station         = null;
-let timerInterval   = null;
-let alertShown      = false;
-let alertDismissed  = false;
-let lastSyncTime    = null;
+// ── מחזור אוטומטי ──
+// boarding → running → setup → boarding → ...
+const AUTO_NEXT = { boarding: 'running', running: 'setup', setup: 'boarding' };
+const AUTO_LABELS = {
+  boarding: 'מתחיל פעילות...',
+  running:  'עובר להתארגנות...',
+  setup:    'פותח קליטת קהל...'
+};
+
+let station          = null;
+let timerInterval    = null;
+let lastSyncTime     = null;
+let autoTransitioning = false;  // מונע מעבר כפול
 
 initOfflineDetector();
 
-// Clock
+// שעון
 setInterval(() => {
   document.getElementById('remote-clock').textContent =
-    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 }, 1000);
 
-// Listen to station
+// ── האזנה ל-Firebase ──
 stationRef(stationId).on('value', snap => {
-  station = snap.val();
+  station      = snap.val();
   lastSyncTime = Date.now();
   document.getElementById('last-sync').textContent = formatTime(lastSyncTime);
+
   if (!station) {
     document.getElementById('station-info').innerHTML = '<div style="color:var(--closed)">מתחם לא נמצא</div>';
     return;
   }
+
+  // כשמגיע עדכון סטטוס — אפשר לאפס את דגל המעבר
+  autoTransitioning = false;
+  hideTransitioningOverlay();
+
   renderStation();
-  alertDismissed = false;
 });
 
 function renderStation() {
   if (!station) return;
-  const st = station.status || 'idle';
+  const st    = station.status || 'idle';
   const color = station.topicColor || 'var(--cyan)';
+  const inCycle = ['boarding', 'running', 'setup'].includes(st);
 
-  // Station info
+  // כרטיס מתחם
   document.getElementById('station-info').innerHTML = `
     <div class="station-name">${station.name}</div>
-    <div class="station-topic" style="color:${color}">${station.topic||''}</div>
-    <div class="mt-8">
+    <div class="station-topic" style="color:${color}">${station.topic || ''}</div>
+    <div class="mt-8" style="display:flex;align-items:center;gap:8px;">
       <span class="badge badge--${st}"><span class="badge-dot"></span>${STATUS[st].label}</span>
     </div>`;
 
-  // Manager message
-  const msgBar  = document.getElementById('manager-msg-bar');
-  const msgText = document.getElementById('manager-msg-text');
+  // הודעת מנהל
+  const msgBar = document.getElementById('manager-msg-bar');
   if (station.managerMessage && station.managerMessage.trim()) {
     msgBar.style.display = 'block';
-    msgText.textContent  = station.managerMessage;
+    document.getElementById('manager-msg-text').textContent = station.managerMessage;
   } else {
     msgBar.style.display = 'none';
   }
 
-  // Extend row / next info
-  document.getElementById('extend-row').style.display = st === 'running' ? 'flex' : 'none';
+  // שורת כפתורים (פעיל רק במהלך מחזור)
+  document.getElementById('controls-row').style.display = inCycle ? 'block' : 'none';
+  document.getElementById('extend-row').style.display   = st === 'running' ? 'flex' : 'none';
+  document.getElementById('stop-row').style.display     = inCycle ? 'block' : 'none';
 
+  // "הסבב הבא"
   const nextInfo = document.getElementById('next-info');
-  if ((st === 'running' || st === 'boarding') && station.nextSessionTime) {
+  if (station.nextSessionTime && inCycle) {
     nextInfo.style.display = 'block';
     document.getElementById('next-time').textContent = formatTime(station.nextSessionTime);
   } else {
     nextInfo.style.display = 'none';
   }
 
-  // Main button
-  updateMainButton(st);
+  // כפתור ראשי
+  updateMainButton(st, inCycle);
 
-  // Start/restart interval
+  // טיימר
   clearInterval(timerInterval);
   timerInterval = setInterval(tickTimer, 500);
   tickTimer();
 }
 
-function updateMainButton(st) {
+function updateMainButton(st, inCycle) {
   const btn = document.getElementById('btn-main');
-  btn.disabled = false;
-  btn.className = 'btn';
+  btn.disabled  = false;
+  btn.className = 'btn btn--xxl';
 
-  const actions = {
-    idle:     { label:'🟢 פתח קליטת קהל',   cls:'btn--success', next:'boarding' },
-    boarding: { label:'▶ התחל פעילות!',      cls:'btn--primary', next:'running'  },
-    running:  { label:'⏹ סיים פעילות',       cls:'btn--warning', next:'setup'    },
-    setup:    { label:'🚪 פתח קליטת קהל',   cls:'btn--success', next:'boarding'  },
-    closed:   { label:'מתחם סגור',            cls:'btn--ghost',   next:null        }
+  if (st === 'idle') {
+    btn.textContent = '🚀 התחל מחזור';
+    btn.classList.add('btn--success');
+    btn.onclick = () => doManualTransition('boarding');
+    return;
+  }
+  if (st === 'closed') {
+    btn.textContent = 'מתחם סגור';
+    btn.classList.add('btn--ghost');
+    btn.disabled = true;
+    return;
+  }
+
+  // בתוך מחזור — הכפתור מדלג לשלב הבא ידנית
+  const skipLabels = {
+    boarding: { label: '▶ התחל פעילות עכשיו', cls: 'btn--primary' },
+    running:  { label: '⏩ דלג להתארגנות',    cls: 'btn--warning' },
+    setup:    { label: '🚪 פתח קליטה עכשיו',  cls: 'btn--success' }
   };
-
-  const a = actions[st] || actions.idle;
+  const a = skipLabels[st] || { label: '▶', cls: 'btn--secondary' };
   btn.textContent = a.label;
-  btn.classList.add('btn--xxl', a.cls);
-  if (!a.next) { btn.disabled = true; return; }
-  btn.onclick = () => doAction(a.next);
+  btn.classList.add(a.cls);
+  btn.onclick = () => doSkipToNext();
 }
 
+// ── Tick timer + auto-transition ──
 function tickTimer() {
   if (!station) return;
   const st  = station.status || 'idle';
   const now = Date.now();
-  const timerEl   = document.getElementById('main-timer');
-  const labelEl   = document.getElementById('timer-label');
-  const subEl     = document.getElementById('timer-sub');
-  const progEl    = document.getElementById('prog-fill');
-  const nextRelEl = document.getElementById('next-rel');
 
-  // Update next session relative time
-  if (station.nextSessionTime && nextRelEl) {
-    nextRelEl.textContent = formatTimeUntil(station.nextSessionTime);
+  const timerEl = document.getElementById('main-timer');
+  const labelEl = document.getElementById('timer-label');
+  const subEl   = document.getElementById('timer-sub');
+  const progEl  = document.getElementById('prog-fill');
+  const relEl   = document.getElementById('next-rel');
+
+  if (relEl && station.nextSessionTime) {
+    relEl.textContent = formatTimeUntil(station.nextSessionTime);
   }
 
-  let secs = 0, pct = 0, label = '', sub = '', progClass = '';
+  let secs = 0, pct = 0, label = '', sub = '', progClass = '', endTime = 0, total = 0;
 
   if (st === 'running' && station.sessionEndTime) {
-    secs  = Math.max(0, Math.round((station.sessionEndTime - now) / 1000));
-    const total = (station.activityDuration||25)*60;
-    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
-    label = 'נותר לפעילות';
-    sub   = `התחיל: ${formatTime(station.sessionStartTime)}`;
+    endTime = station.sessionEndTime;
+    total   = (station.activityDuration || 25) * 60;
+    secs    = Math.max(0, Math.round((endTime - now) / 1000));
+    pct     = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label   = 'נותר לפעילות';
+    sub     = `התחיל: ${formatTime(station.sessionStartTime)}`;
     progClass = 'progress__fill--running';
 
-    // Alert logic
-    if (secs === 0 && !alertShown && !alertDismissed) {
-      const autoDelay = (station.autoTransitionDelay || 3) * 60 * 1000;
-      setTimeout(() => {
-        if ((station.status === 'running') && !alertDismissed) {
-          alertShown = true;
-          document.getElementById('alert-overlay').style.display = 'flex';
-        }
-      }, autoDelay);
-    }
-
   } else if (st === 'boarding' && station.boardingEndTime) {
-    secs  = Math.max(0, Math.round((station.boardingEndTime - now) / 1000));
-    const total = (station.boardingDuration||5)*60;
-    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
-    label = 'לסיום קליטה';
+    endTime = station.boardingEndTime;
+    total   = (station.boardingDuration || 3) * 60;
+    secs    = Math.max(0, Math.round((endTime - now) / 1000));
+    pct     = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label   = 'קליטת קהל';
+    sub     = 'הפעילות מתחילה בקרוב...';
     progClass = 'progress__fill--boarding';
 
   } else if (st === 'setup' && station.setupEndTime) {
-    secs  = Math.max(0, Math.round((station.setupEndTime - now) / 1000));
-    const total = (station.setupDuration||7)*60;
-    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
-    label = 'לסיום הכנה';
-    sub   = 'הסבב הבא יפתח בקרוב';
+    endTime = station.setupEndTime;
+    total   = (station.setupDuration || 5) * 60;
+    secs    = Math.max(0, Math.round((endTime - now) / 1000));
+    pct     = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label   = 'התארגנות';
+    sub     = 'הכנה לסבב הבא...';
     progClass = 'progress__fill--setup';
 
   } else {
     timerEl.textContent = '--:--';
     timerEl.className   = 'timer-display';
-    labelEl.textContent = STATUS[st].label;
-    subEl.textContent   = '';
+    labelEl.textContent = STATUS[st]?.label || '';
+    subEl.textContent   = st === 'idle' ? 'לחץ "התחל מחזור" כדי להתחיל' : '';
     progEl.style.width  = '0%';
     return;
   }
@@ -324,19 +365,71 @@ function tickTimer() {
   subEl.textContent   = sub;
   progEl.className    = `progress__fill ${progClass}`;
   progEl.style.width  = pct + '%';
+
+  // ── מעבר אוטומטי כשהטיימר מגיע ל-0 ──
+  if (secs === 0 && !autoTransitioning && AUTO_NEXT[st]) {
+    scheduleAutoTransition(st);
+  }
 }
 
-async function doAction(newStatus) {
+function scheduleAutoTransition(fromStatus) {
+  autoTransitioning = true;
+  // 3 שניות grace — נותן למדריך לדלג ידנית אם רוצה
+  setTimeout(async () => {
+    if (!station) { autoTransitioning = false; return; }
+    try {
+      // מאמת שהסטטוס לא שונה ידנית בינתיים
+      const snap    = await stationRef(stationId).once('value');
+      const current = snap.val();
+      if (!current || current.status !== fromStatus) {
+        autoTransitioning = false;
+        return;
+      }
+      const nextStatus = AUTO_NEXT[fromStatus];
+      showTransitioningOverlay(AUTO_LABELS[fromStatus]);
+      await transitionStation(stationId, nextStatus, current, { auto: true });
+    } catch(e) {
+      showToast('שגיאת מעבר אוטומטי: ' + e.message, 'error');
+      autoTransitioning = false;
+      hideTransitioningOverlay();
+    }
+  }, 3000);
+}
+
+function showTransitioningOverlay(msg) {
+  const el = document.getElementById('transitioning-overlay');
+  document.getElementById('transitioning-label').textContent = msg || 'עובר לשלב הבא...';
+  el.style.display = 'flex';
+}
+function hideTransitioningOverlay() {
+  document.getElementById('transitioning-overlay').style.display = 'none';
+}
+
+// ── פעולות ידניות ──
+async function doManualTransition(newStatus) {
   if (!station) return;
-  document.getElementById('btn-main').disabled = true;
-  document.getElementById('alert-overlay').style.display = 'none';
-  alertShown = false;
+  const btn = document.getElementById('btn-main');
+  btn.disabled = true;
   try {
-    await transitionStation(stationId, newStatus, station);
-    showToast(STATUS[newStatus].label, 'success');
+    await transitionStation(stationId, newStatus, station, { manual: true });
   } catch(e) {
-    showToast('שגיאה בחיבור', 'error');
-    document.getElementById('btn-main').disabled = false;
+    showToast('שגיאה: ' + e.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+async function doSkipToNext() {
+  if (!station || autoTransitioning) return;
+  const next = AUTO_NEXT[station.status];
+  if (!next) return;
+  autoTransitioning = true;
+  showTransitioningOverlay(AUTO_LABELS[station.status]);
+  try {
+    await transitionStation(stationId, next, station, { manual: true, skip: true });
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+    autoTransitioning = false;
+    hideTransitioningOverlay();
   }
 }
 
@@ -346,16 +439,12 @@ async function doExtend(mins) {
   showToast(`הוספו ${mins} דקות`, 'success');
 }
 
-async function doEarlyEnd() {
-  if (!station) return;
-  await transitionStation(stationId, 'setup', station, { earlyEnd: true });
-  showToast('הפעילות הסתיימה', 'success');
-}
-
-function dismissAlert() {
-  alertDismissed = true;
-  alertShown     = false;
-  document.getElementById('alert-overlay').style.display = 'none';
+async function doStop() {
+  if (!confirm('לעצור את המחזור ולהחזיר את המתחם להמתנה?')) return;
+  autoTransitioning = false;
+  hideTransitioningOverlay();
+  await transitionStation(stationId, 'idle', station, { manual: true });
+  showToast('המחזור נעצר', 'warning');
 }
 </script>
 </body>
