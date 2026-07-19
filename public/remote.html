@@ -43,9 +43,22 @@
       border-radius: var(--r-lg); padding: 20px;
       text-align: center; flex-shrink: 0;
     }
-    .timer-label { font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-400);margin-bottom:8px; }
-    #main-timer  { font-size:4.5rem;letter-spacing:4px; }
-    .timer-sub   { font-size:.8rem;color:var(--text-300);margin-top:8px; }
+    .timer-label {
+      font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--text-400);margin-bottom:8px;
+      min-height: 1.4em; /* מונע קפיצת גובה כשהטקסט משתנה */
+    }
+    #main-timer {
+      font-size: 4.5rem;
+      letter-spacing: 4px;
+      font-variant-numeric: tabular-nums; /* כל ספרה באותה רוחב */
+      font-feature-settings: "tnum";
+      display: block;
+      width: 100%;
+      text-align: center;
+      min-height: 1.2em; /* מונע קפיצת גובה */
+    }
+    .timer-sub   { font-size:.8rem;color:var(--text-300);margin-top:8px;min-height:1.3em; }
     #progress-wrap { margin-top:12px; }
 
     /* Main action button */
