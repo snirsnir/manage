@@ -3,18 +3,18 @@
 // ============================================================
 
 const STATUS = {
-  idle:     { label: 'המתנה',        css: 'idle',     icon: '⬜' },
-  boarding: { label: 'קליטת קהל',   css: 'boarding', icon: '🟢' },
-  running:  { label: 'בפעילות',      css: 'running',  icon: '🔵' },
-  setup:    { label: 'התארגנות',     css: 'setup',    icon: '🟡' },
-  closed:   { label: 'סגור / תקלה', css: 'closed',   icon: '🔴' }
+  idle:     { label: 'המתנה',              css: 'idle',     icon: '⬜' },
+  running:  { label: 'פעילות מתקיימת',    css: 'running',  icon: '🟢' },
+  setup:    { label: 'הכנה',               css: 'setup',    icon: '🟡' },
+  boarding: { label: 'קליטה',              css: 'boarding', icon: '🔵' },
+  closed:   { label: 'סגור / תקלה',       css: 'closed',   icon: '🔴' }
 };
 
 const STATUS_COLORS = {
   idle:     '#546e7a',
-  boarding: '#00e676',
-  running:  '#2196f3',
-  setup:    '#ffc107',
+  running:  '#00e676',   // ירוק
+  setup:    '#ffc107',   // צהוב
+  boarding: '#2196f3',   // כחול
   closed:   '#f44336'
 };
 

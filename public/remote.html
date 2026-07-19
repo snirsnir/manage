@@ -195,9 +195,9 @@ if (!stationId) {
 // boarding → running → setup → boarding → ...
 const AUTO_NEXT = { boarding: 'running', running: 'setup', setup: 'boarding' };
 const AUTO_LABELS = {
-  boarding: 'מתחיל פעילות...',
-  running:  'עובר להתארגנות...',
-  setup:    'פותח קליטת קהל...'
+  boarding: 'מתחיל פעילות מתקיימת...',
+  running:  'עובר להכנה...',
+  setup:    'פותח קליטה...'
 };
 
 let station          = null;
@@ -297,9 +297,9 @@ function updateMainButton(st, inCycle) {
 
   // בתוך מחזור — הכפתור מדלג לשלב הבא ידנית
   const skipLabels = {
-    boarding: { label: '▶ התחל פעילות עכשיו', cls: 'btn--primary' },
-    running:  { label: '⏩ דלג להתארגנות',    cls: 'btn--warning' },
-    setup:    { label: '🚪 פתח קליטה עכשיו',  cls: 'btn--success' }
+    boarding: { label: '▶ התחל פעילות עכשיו',  cls: 'btn--success' },
+    running:  { label: '⏩ דלג להכנה',          cls: 'btn--warning' },
+    setup:    { label: '🚪 פתח קליטה עכשיו',   cls: 'btn--primary' }
   };
   const a = skipLabels[st] || { label: '▶', cls: 'btn--secondary' };
   btn.textContent = a.label;

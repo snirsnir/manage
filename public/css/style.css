@@ -21,9 +21,9 @@
   --orange:      #ff6500;
 
   --idle:     #546e7a;   --idle-glow:     rgba(84,110,122,.25);
-  --boarding: #00e676;   --boarding-glow: rgba(0,230,118,.25);
-  --running:  #2196f3;   --running-glow:  rgba(33,150,243,.25);
-  --setup:    #ffc107;   --setup-glow:    rgba(255,193,7,.25);
+  --running:  #00e676;   --running-glow:  rgba(0,230,118,.25);   /* ירוק */
+  --setup:    #ffc107;   --setup-glow:    rgba(255,193,7,.25);    /* צהוב */
+  --boarding: #2196f3;   --boarding-glow: rgba(33,150,243,.25);  /* כחול */
   --closed:   #f44336;   --closed-glow:   rgba(244,67,54,.25);
 
   --text-100: #ffffff;
@@ -237,8 +237,8 @@ a:hover { text-decoration: underline; }
 .progress__fill {
   height:100%; border-radius:100px; transition:width 1s linear;
 }
-.progress__fill--running  { background:linear-gradient(90deg,var(--cyan-dark),var(--running)); }
-.progress__fill--boarding { background:linear-gradient(90deg,#1b5e20,var(--boarding)); }
+.progress__fill--running  { background:linear-gradient(90deg,#1b5e20,var(--running)); }
+.progress__fill--boarding { background:linear-gradient(90deg,var(--cyan-dark),var(--boarding)); }
 .progress__fill--setup    { background:linear-gradient(90deg,#e65100,var(--setup)); }
 
 /* ── Forms ── */
