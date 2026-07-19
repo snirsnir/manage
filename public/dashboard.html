@@ -237,8 +237,8 @@ function buildCardHTML(s) {
 
     <div class="dash-card__actions">
       <button class="btn btn--success"  onclick="managerTransition('${s.id}','running')"  title="פעילות מתקיימת">🟢 פעילות מתקיימת</button>
-      <button class="btn btn--warning"  onclick="managerTransition('${s.id}','setup')"    title="הכנה">🟡 הכנה</button>
-      <button class="btn btn--primary"  onclick="managerTransition('${s.id}','boarding')" title="קליטה">🔵 קליטה</button>
+      <button class="btn btn--warning"  onclick="managerTransition('${s.id}','setup')"    title="הכנה">🟡 הכנה לקראת פעילות חדשה</button>
+      <button class="btn btn--primary"  onclick="managerTransition('${s.id}','boarding')" title="קליטה">🔵 קליטת קהל</button>
       <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 3)"   title="+3 דקות">+3'</button>
       <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 5)"   title="+5 דקות">+5'</button>
       <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 7)"   title="+7 דקות">+7'</button>
