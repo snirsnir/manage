@@ -135,13 +135,45 @@ const TOPIC_COLORS = ['#00e5ff','#00e676','#ffc107','#f44336','#a855f7','#ff6500
 let allStations = [];
 let activeId    = null;
 
+// ── Firebase connection indicator ──
+function setDbStatus(ok, msg) {
+  let bar = document.getElementById('db-status-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'db-status-bar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;text-align:center;padding:8px;font-size:.85rem;font-weight:700;transition:.3s;';
+    document.body.appendChild(bar);
+  }
+  if (ok) {
+    bar.style.cssText += 'background:rgba(0,230,118,.15);color:#00e676;border-bottom:1px solid rgba(0,230,118,.3);';
+    bar.textContent = '✓ Firebase מחובר';
+    setTimeout(() => bar.remove(), 3000);
+  } else {
+    bar.style.cssText += 'background:rgba(244,67,54,.15);color:#f44336;border-bottom:1px solid rgba(244,67,54,.3);';
+    bar.textContent = '✗ שגיאת Firebase: ' + msg;
+  }
+}
+
 // ── Load stations list ──
-stationsRef().orderByChild('order').on('value', snap => {
-  allStations = [];
-  snap.forEach(c => allStations.push(c.val()));
-  renderSidebar();
-  if (activeId) renderForm(allStations.find(s => s.id === activeId));
-});
+stationsRef().orderByChild('order').on(
+  'value',
+  snap => {
+    setDbStatus(true);
+    allStations = [];
+    snap.forEach(c => allStations.push(c.val()));
+    renderSidebar();
+    if (activeId) renderForm(allStations.find(s => s.id === activeId));
+  },
+  err => {
+    setDbStatus(false, err.message);
+    const el = document.getElementById('stations-sidebar');
+    el.innerHTML = `<div class="alert alert--error" style="margin:8px;">
+      ❌ שגיאת Firebase<br>
+      <small>${err.message}</small><br>
+      <small style="color:var(--text-400);margin-top:4px;display:block;">ודא שה-Realtime Database פעיל בקונסול Firebase</small>
+    </div>`;
+  }
+);
 
 function renderSidebar() {
   const el = document.getElementById('stations-sidebar');
@@ -170,12 +202,23 @@ function selectStation(id) {
 
 // ── New station ──
 document.getElementById('btn-new').onclick = async () => {
-  const id = 'station_' + Date.now();
-  const order = allStations.length;
-  const station = defaultStation(id, `מתחם ${order + 1}`, order);
-  await stationRef(id).set(station);
-  selectStation(id);
-  showToast('מתחם נוצר!', 'success');
+  const btn = document.getElementById('btn-new');
+  btn.disabled = true;
+  btn.textContent = 'שומר...';
+  try {
+    const id      = 'station_' + Date.now();
+    const order   = allStations.length;
+    const station = defaultStation(id, `מתחם ${order + 1}`, order);
+    await stationRef(id).set(station);
+    selectStation(id);
+    showToast('מתחם נוצר!', 'success');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+    setDbStatus(false, e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '+ הוסף';
+  }
 };
 
 // ── Render edit form ──
