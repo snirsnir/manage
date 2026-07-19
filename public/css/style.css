@@ -332,6 +332,19 @@ a:hover { text-decoration: underline; }
 }
 #offline-banner.visible { transform:translateY(0); }
 
+/* ── Extend time buttons ── */
+.btn--extend {
+  background: rgba(0, 230, 118, 0.1);
+  color: #6effa8;
+  border: 1px solid rgba(0, 230, 118, 0.25);
+}
+.btn--extend:hover:not(:disabled) {
+  background: rgba(0, 230, 118, 0.2);
+  border-color: rgba(0, 230, 118, 0.5);
+  color: #a8ffc8;
+  transform: translateY(-1px);
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar       { width:5px; }
 ::-webkit-scrollbar-track { background:var(--bg-0); }

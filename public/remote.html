@@ -112,21 +112,7 @@
     .transitioning-overlay .spinner { width: 56px; height: 56px; }
     .transitioning-overlay p { color: var(--cyan); font-size: 1.1rem; font-weight: 600; }
 
-    /* כפתורי הארכה — ירוק עדין */
-    .btn--extend {
-      background: rgba(0, 230, 118, 0.1);
-      color: #6effa8;
-      border: 1px solid rgba(0, 230, 118, 0.25);
-      font-size: .95rem;
-    }
-    .btn--extend:hover:not(:disabled) {
-      background: rgba(0, 230, 118, 0.2);
-      border-color: rgba(0, 230, 118, 0.5);
-      color: #a8ffc8;
-      transform: translateY(-1px);
-    }
-
-    @media(max-width:380px) {
+@media(max-width:380px) {
       #main-timer { font-size:3.5rem; }
       #btn-main   { font-size:1.35rem;min-height:76px; }
     }
@@ -165,10 +151,10 @@
 
   <!-- כפתורי הארכה — מעל כפתור סיים -->
   <div id="extend-row" class="extend-row" style="display:none;flex-shrink:0;">
-    <button class="btn btn--extend" onclick="doExtend(3)">הארך +3</button>
-    <button class="btn btn--extend" onclick="doExtend(5)">הארך +5</button>
-    <button class="btn btn--extend" onclick="doExtend(7)">הארך +7</button>
-    <button class="btn btn--extend" onclick="doExtend(10)">הארך +10</button>
+    <button class="btn btn--extend" onclick="doExtend(3)">הארך 3+</button>
+    <button class="btn btn--extend" onclick="doExtend(5)">הארך 5+</button>
+    <button class="btn btn--extend" onclick="doExtend(7)">הארך 7+</button>
+    <button class="btn btn--extend" onclick="doExtend(10)">הארך 10+</button>
   </div>
 
   <!-- Main CTA button -->
