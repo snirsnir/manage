@@ -312,7 +312,7 @@ function updateMainButton(st, inCycle) {
   const skipLabels = {
     boarding: { label: '▶ התחל פעילות עכשיו',  cls: 'btn--success' },
     running:  { label: '⏹ סיים פעילות',          cls: 'btn--danger'  },
-    setup:    { label: '🚪 פתח קליטה עכשיו',   cls: 'btn--primary' }
+    setup:    { label: '🚪 פתח קליטה עכשיו',   cls: 'btn--success' }
   };
   const a = skipLabels[st] || { label: '▶', cls: 'btn--secondary' };
   btn.textContent = a.label;
@@ -377,6 +377,8 @@ function tickTimer() {
   timerEl.textContent = formatTimer(secs);
   timerEl.className   = `timer-display ${secs < 60 ? 'timer-display--danger' : secs < 180 ? 'timer-display--warn' : ''}`;
   labelEl.textContent = label;
+  labelEl.style.color    = st === 'setup' ? 'var(--setup)' : '';
+  labelEl.style.fontSize = st === 'setup' ? '1rem'         : '';
   subEl.textContent   = sub;
   progEl.className    = `progress__fill ${progClass}`;
   progEl.style.width  = pct + '%';
