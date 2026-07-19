@@ -239,7 +239,9 @@ function buildCardHTML(s) {
       <button class="btn btn--success"  onclick="managerTransition('${s.id}','boarding')" title="פתח קליטת קהל">🟢 קליטה</button>
       <button class="btn btn--primary"  onclick="managerTransition('${s.id}','running')"  title="התחל פעילות">▶ הפעל</button>
       <button class="btn btn--warning"  onclick="managerTransition('${s.id}','setup')"    title="עבור להתארגנות">🟡 הכנה</button>
+      <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 3)"   title="+3 דקות">+3'</button>
       <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 5)"   title="+5 דקות">+5'</button>
+      <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 7)"   title="+7 דקות">+7'</button>
       <button class="btn btn--ghost btn--sm" onclick="addTime('${s.id}', 10)"  title="+10 דקות">+10'</button>
       <button class="btn btn--secondary btn--sm" onclick="openMsgModal('${s.id}')">📢</button>
       <button class="btn btn--danger btn--sm"    onclick="managerTransition('${s.id}','closed')">🔴</button>
