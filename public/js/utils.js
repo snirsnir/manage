@@ -4,7 +4,7 @@
 
 const STATUS = {
   idle:     { label: 'המתנה',              css: 'idle',     icon: '⬜' },
-  running:  { label: 'פעילות מתקיימת',    css: 'running',  icon: '🟢' },
+  running:  { label: 'בפעילות',    css: 'running',  icon: '🟢' },
   setup:    { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
   boarding: { label: 'קליטת קהל',              css: 'boarding', icon: '🔵' },
   closed:   { label: 'סגור / תקלה',       css: 'closed',   icon: '🔴' }
