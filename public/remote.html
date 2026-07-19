@@ -298,7 +298,7 @@ function updateMainButton(st, inCycle) {
   // בתוך מחזור — הכפתור מדלג לשלב הבא ידנית
   const skipLabels = {
     boarding: { label: '▶ התחל פעילות עכשיו',  cls: 'btn--success' },
-    running:  { label: '⏩ דלג להכנה',          cls: 'btn--warning' },
+    running:  { label: '⏹ סיים פעילות',          cls: 'btn--danger'  },
     setup:    { label: '🚪 פתח קליטה עכשיו',   cls: 'btn--primary' }
   };
   const a = skipLabels[st] || { label: '▶', cls: 'btn--secondary' };
