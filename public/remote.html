@@ -136,23 +136,22 @@
     <div id="progress-wrap"><div class="progress"><div class="progress__fill" id="prog-fill" style="width:0%"></div></div></div>
   </div>
 
+  <!-- כפתורי הארכה — מעל כפתור סיים -->
+  <div id="extend-row" class="extend-row" style="display:none;flex-shrink:0;">
+    <button class="btn btn--success" onclick="doExtend(3)">הארך +3</button>
+    <button class="btn btn--success" onclick="doExtend(5)">הארך +5</button>
+    <button class="btn btn--success" onclick="doExtend(7)">הארך +7</button>
+    <button class="btn btn--success" onclick="doExtend(10)">הארך +10</button>
+  </div>
+
   <!-- Main CTA button -->
   <div class="main-action">
     <button class="btn" id="btn-main" disabled>טוען...</button>
   </div>
 
-  <!-- Auto cycle indicator + extend row -->
+  <!-- Auto badge + controls -->
   <div id="controls-row" style="display:none;flex-shrink:0;">
-    <!-- Running controls -->
-    <div id="extend-row" class="extend-row" style="display:none;">
-      <button class="btn btn--ghost" onclick="doExtend(3)">+3'</button>
-      <button class="btn btn--ghost" onclick="doExtend(5)">+5'</button>
-      <button class="btn btn--ghost" onclick="doExtend(7)">+7'</button>
-      <button class="btn btn--ghost" onclick="doExtend(10)">+10'</button>
-      <button class="btn btn--warning btn--sm" onclick="doSkipToNext()">דלג ▶</button>
-    </div>
-    <!-- Auto badge -->
-    <div style="display:flex;justify-content:center;margin-top:8px;">
+    <div style="display:flex;justify-content:center;">
       <div class="auto-badge"><div class="dot"></div>מחזור אוטומטי פעיל</div>
     </div>
   </div>
@@ -257,7 +256,7 @@ function renderStation() {
   // שורת כפתורים (פעיל רק במהלך מחזור)
   document.getElementById('controls-row').style.display = inCycle ? 'block' : 'none';
   document.getElementById('extend-row').style.display   = st === 'running' ? 'flex' : 'none';
-  document.getElementById('stop-row').style.display     = inCycle ? 'block' : 'none';
+  document.getElementById('stop-row').style.display     = inCycle ? 'block'  : 'none';
 
   // "הסבב הבא"
   const nextInfo = document.getElementById('next-info');
