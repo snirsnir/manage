@@ -67,6 +67,14 @@
     .dash-card__actions .btn { font-size: .72rem; padding: 5px 10px; border-radius: var(--r-sm); }
     .actions-row { display: flex; gap: 6px; }
     .actions-row--status .btn { flex: 1; white-space: nowrap; font-size: .68rem; }
+    .btn--reduce {
+      background: rgba(244, 67, 54, 0.1); color: #ff8a80;
+      border: 1px solid rgba(244, 67, 54, 0.25);
+    }
+    .btn--reduce:hover:not(:disabled) {
+      background: rgba(244, 67, 54, 0.2); border-color: rgba(244, 67, 54, 0.5);
+      transform: translateY(-1px);
+    }
 
     /* Manager message panel */
     .msg-overlay {
@@ -244,12 +252,15 @@ function buildCardHTML(s) {
         <button class="btn btn--primary" onclick="managerTransition('${s.id}','boarding')" title="קליטה">🔵 קליטת קהל</button>
       </div>
       <div class="actions-row">
-        <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 3)"  title="+3 דקות">3+</button>
+        <button class="btn btn--reduce btn--sm" onclick="addTime('${s.id}', -2)" title="-2 דקות">2-</button>
+        <button class="btn btn--reduce btn--sm" onclick="addTime('${s.id}', -5)" title="-5 דקות">5-</button>
+        <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 2)"  title="+2 דקות">2+</button>
         <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 5)"  title="+5 דקות">5+</button>
-        <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 7)"  title="+7 דקות">7+</button>
-        <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 10)" title="+10 דקות">10+</button>
-        <button class="btn btn--secondary btn--sm" onclick="openMsgModal('${s.id}')">📢</button>
-        <button class="btn btn--danger btn--sm"   onclick="managerTransition('${s.id}','closed')">🔴</button>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn--danger btn--sm" style="flex:1" onclick="openMsgModal('${s.id}')">📢 שלח הודעה למתחם</button>
+        <button class="btn btn--ghost  btn--sm" style="flex:1" onclick="stationBreak('${s.id}')">☕ יצאנו להפסקה</button>
+        <button class="btn btn--ghost  btn--sm" style="flex:1;color:var(--closed);border-color:rgba(244,67,54,.3)" onclick="managerTransition('${s.id}','closed')">🚫 סגור / תקלה</button>
       </div>
     </div>
   </div>`;
@@ -337,7 +348,15 @@ async function addTime(id, mins) {
   const s = stations[id];
   if (!s || s.status !== 'running') { showToast('המתחם לא בפעילות', 'warning'); return; }
   await extendSession(id, s, mins);
-  showToast(`הוספו ${mins} דקות ל-${s.name}`, 'success');
+  const label = mins > 0 ? `+${mins} דקות ל-${s.name}` : `${mins} דקות מ-${s.name}`;
+  showToast(label, mins > 0 ? 'success' : 'warning');
+}
+
+async function stationBreak(id) {
+  const s = stations[id];
+  if (!s) return;
+  await stationRef(id).update({ status: 'closed', managerMessage: '☕ יצאנו להפסקה', lastUpdated: Date.now() });
+  showToast(`${s.name}: יצאנו להפסקה`, 'warning');
 }
 
 async function clearMsg(id) {
