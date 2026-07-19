@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ניהול מתחמים | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; padding: 24px 0 60px; align-items: start; }
+    @media(max-width:900px){ .admin-layout{grid-template-columns:1fr;} }
+
+    /* Station list */
+    .station-list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: var(--r-md); cursor: pointer;
+      transition: background .15s; border: 1px solid transparent; margin-bottom: 6px;
+    }
+    .station-list-item:hover { background: rgba(255,255,255,.04); border-color: var(--glass-border); }
+    .station-list-item.active { background: rgba(0,229,255,.07); border-color: var(--cyan); }
+    .station-list-item .dot { width:12px;height:12px;border-radius:50%;flex-shrink:0; }
+    .station-list-item .info { flex:1; min-width:0; }
+    .station-list-item .info .sname { font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .station-list-item .info .stopic { font-size:.75rem;color:var(--text-400); }
+    .station-list-item .status-badge { font-size:.7rem; }
+
+    /* Form section */
+    .form-section { margin-bottom:28px; }
+    .form-section-title { font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-400);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--glass-border); }
+
+    /* Color picker */
+    .color-row { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
+    .color-swatch {
+      width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+      transition:.15s; flex-shrink:0;
+    }
+    .color-swatch.active, .color-swatch:hover { border-color:#fff;transform:scale(1.15); }
+    .color-input-wrap { display:flex;gap:8px;align-items:center;margin-top:8px; }
+    .color-native { width:44px;height:36px;border:none;background:none;cursor:pointer;padding:0; }
+
+    /* Links preview */
+    .links-preview { display:flex;flex-direction:column;gap:8px;margin-top:8px; }
+    .link-preview-row {
+      display:flex;align-items:center;justify-content:space-between;
+      background:rgba(255,255,255,.03);border:1px solid var(--glass-border);
+      border-radius:var(--r-sm);padding:8px 14px;gap:8px;
+    }
+    .link-preview-row .ltype { font-size:.75rem;color:var(--text-400);font-weight:600;width:60px;flex-shrink:0; }
+    .link-preview-row .lurl  { font-size:.75rem;color:var(--text-300);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1; }
+    .link-preview-row .copy-btn { font-size:.7rem;color:var(--cyan);cursor:pointer;background:none;border:none;font-family:var(--font-body);flex-shrink:0; }
+    .link-preview-row .open-btn { font-size:.7rem;color:var(--text-400);cursor:pointer;background:none;border:none;font-family:var(--font-body);text-decoration:none; }
+
+    .empty-state { text-align:center;padding:60px 24px;color:var(--text-400); }
+    .empty-state .icon { font-size:3rem;margin-bottom:16px; }
+    .new-station-btn { width:100%;margin-top:8px; }
+    .delete-confirm { color:var(--closed);border-color:var(--closed);background:rgba(244,67,54,.06); }
+
+    .toggle-row { display:flex;align-items:center;justify-content:space-between;padding:12px 0; }
+    .toggle-label { font-size:.9rem;font-weight:600; }
+    .toggle { position:relative;width:48px;height:26px; }
+    .toggle input { opacity:0;width:0;height:0; }
+    .toggle-slider {
+      position:absolute;inset:0;background:rgba(255,255,255,.12);
+      border-radius:100px;cursor:pointer;transition:.2s;
+    }
+    .toggle-slider::before {
+      content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;
+      background:#fff;border-radius:50%;transition:.2s;
+    }
+    .toggle input:checked + .toggle-slider { background:var(--cyan-dark); }
+    .toggle input:checked + .toggle-slider::before { transform:translateX(22px); }
+  </style>
+</head>
+<body>
+<div id="offline-banner">אין חיבור לאינטרנט</div>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar__brand">
+    <img src="logo.png" alt="טכנודע" class="navbar__logo">
+    <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">מערכת ניהול</div></div>
+  </a>
+  <div class="navbar__nav">
+    <a href="dashboard.html" class="nav-link">דאשבורד</a>
+    <a href="board.html"     class="nav-link">לוח מרכזי</a>
+    <a href="admin.html"     class="nav-link active">ניהול</a>
+  </div>
+</nav>
+
+<div class="page-content">
+<div class="container">
+  <div class="page-header" style="padding-top:32px;text-align:right;">
+    <h1 style="font-size:1.6rem;font-weight:800;">⚙️ ניהול מתחמים</h1>
+    <p class="text-muted text-small mt-8">הגדר מתחמים, סרטונים, זמנים וקישורים</p>
+  </div>
+
+  <div class="admin-layout">
+
+    <!-- Sidebar: station list -->
+    <div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-16">
+          <h2 style="font-size:1rem;font-weight:700;">מתחמים</h2>
+          <button class="btn btn--primary btn--sm" id="btn-new">+ הוסף</button>
+        </div>
+        <div id="stations-sidebar">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main: edit form -->
+    <div>
+      <div class="card" id="form-container">
+        <div class="empty-state">
+          <div class="icon">🔧</div>
+          <p>בחר מתחם מהרשימה<br>או הוסף מתחם חדש</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<div id="modal-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script>
+initOfflineDetector();
+
+const TOPIC_COLORS = ['#00e5ff','#00e676','#ffc107','#f44336','#a855f7','#ff6500','#2196f3','#e91e63','#4caf50'];
+
+let allStations = [];
+let activeId    = null;
+
+// ── Load stations list ──
+stationsRef().orderByChild('order').on('value', snap => {
+  allStations = [];
+  snap.forEach(c => allStations.push(c.val()));
+  renderSidebar();
+  if (activeId) renderForm(allStations.find(s => s.id === activeId));
+});
+
+function renderSidebar() {
+  const el = document.getElementById('stations-sidebar');
+  if (!allStations.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text-400);padding:24px;font-size:.85rem;">אין מתחמים עדיין</div>';
+    return;
+  }
+  el.innerHTML = allStations.map(s => `
+    <div class="station-list-item ${activeId===s.id?'active':''}" onclick="selectStation('${s.id}')">
+      <div class="dot" style="background:${s.topicColor||'var(--cyan)'};box-shadow:0 0 6px ${s.topicColor||'var(--cyan)'}"></div>
+      <div class="info">
+        <div class="sname">${s.name}</div>
+        <div class="stopic">${s.topic||'ללא נושא'}</div>
+      </div>
+      <span class="badge badge--${s.status||'idle'} station-badge" style="font-size:.65rem;padding:2px 8px;">
+        ${STATUS[s.status||'idle'].label}
+      </span>
+    </div>`).join('');
+}
+
+function selectStation(id) {
+  activeId = id;
+  renderSidebar();
+  renderForm(allStations.find(s => s.id === id));
+}
+
+// ── New station ──
+document.getElementById('btn-new').onclick = async () => {
+  const id = 'station_' + Date.now();
+  const order = allStations.length;
+  const station = defaultStation(id, `מתחם ${order + 1}`, order);
+  await stationRef(id).set(station);
+  selectStation(id);
+  showToast('מתחם נוצר!', 'success');
+};
+
+// ── Render edit form ──
+function renderForm(s) {
+  if (!s) return;
+  const el = document.getElementById('form-container');
+  el.innerHTML = `
+    <div class="flex justify-between items-center mb-24">
+      <h2 style="font-size:1.2rem;font-weight:800;">${s.name}</h2>
+      <div class="flex gap-8">
+        <button class="btn btn--sm btn--ghost" id="btn-delete">🗑️ מחק</button>
+        <button class="btn btn--sm btn--primary" id="btn-save">💾 שמור</button>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">מתחם פעיל</span>
+      <label class="toggle">
+        <input type="checkbox" id="f-enabled" ${s.enabled!==false?'checked':''}>
+        <div class="toggle-slider"></div>
+      </label>
+    </div>
+    <div class="divider"></div>
+
+    <div class="form-section">
+      <div class="form-section-title">פרטי המתחם</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">שם המתחם</label>
+          <input class="form-input" id="f-name" value="${s.name}" placeholder="מעבדה 1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">נושא</label>
+          <input class="form-input" id="f-topic" value="${s.topic||''}" placeholder="קסם המטבח המולקולרי">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">צבע נושא</label>
+        <div class="color-row">
+          ${TOPIC_COLORS.map(c=>`<div class="color-swatch ${s.topicColor===c?'active':''}" style="background:${c}" onclick="setColor('${c}',this)" data-color="${c}"></div>`).join('')}
+        </div>
+        <div class="color-input-wrap">
+          <input type="color" class="color-native" id="f-color" value="${s.topicColor||'#00e5ff'}">
+          <span class="text-small text-muted">בחר צבע מותאם אישית</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">סדר תצוגה</label>
+        <input class="form-input" id="f-order" type="number" value="${s.order||0}" min="0">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">סרטון פתיחה</div>
+      <div class="form-group">
+        <label class="form-label">קישור לסרטון</label>
+        <input class="form-input" id="f-video" value="${s.videoUrl||''}" placeholder="YouTube / Vimeo / קישור ישיר ל-MP4">
+        <div class="form-hint">תומך ב: YouTube, Vimeo, Google Drive, קישור ישיר ל-MP4</div>
+      </div>
+      <div id="video-preview-wrap"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">זמנים (דקות)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">⏱️ משך פעילות</label>
+          <input class="form-input" id="f-duration" type="number" value="${s.activityDuration||25}" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🧹 זמן התארגנות</label>
+          <input class="form-input" id="f-setup" type="number" value="${s.setupDuration||7}" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🚪 זמן קליטת קהל</label>
+          <input class="form-input" id="f-boarding" type="number" value="${s.boardingDuration||5}" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">⚠️ המתנה לאחר סיום (דק')</label>
+          <input class="form-input" id="f-autotransition" type="number" value="${s.autoTransitionDelay||3}" min="1">
+          <div class="form-hint">זמן עד מעבר אוטומטי לאחר פג הטיימר</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">קישורים למתחם</div>
+      <div class="links-preview" id="links-preview">
+        ${renderLinksPreview(s.id)}
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">איפוס מצב</div>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <button class="btn btn--ghost btn--sm" onclick="resetStation('${s.id}')">♻️ איפוס לפעיל</button>
+        <button class="btn btn--danger btn--sm" onclick="closeStation('${s.id}')">🔴 סגור מתחם</button>
+      </div>
+    </div>
+  `;
+
+  // Color picker sync
+  document.getElementById('f-color').addEventListener('input', e => {
+    document.querySelectorAll('.color-swatch').forEach(sw => sw.classList.remove('active'));
+    // don't set active since it's custom
+  });
+
+  // Video preview on URL change
+  const videoInput = document.getElementById('f-video');
+  const previewWrap = document.getElementById('video-preview-wrap');
+  function updateVideoPreview() {
+    const url = videoInput.value.trim();
+    if (!url) { previewWrap.innerHTML = ''; return; }
+    const v = detectVideo(url);
+    if (!v) { previewWrap.innerHTML = ''; return; }
+    previewWrap.innerHTML = `<div class="alert alert--info" style="font-size:.82rem;margin-top:8px;">
+      ✅ זוהה: ${v.type.toUpperCase()}${v.id?' (ID: '+v.id+')':''}
+      <a href="${url}" target="_blank" style="margin-right:12px;font-size:.78rem;">בדוק קישור ↗</a>
+    </div>`;
+  }
+  videoInput.addEventListener('blur', updateVideoPreview);
+  updateVideoPreview();
+
+  // Save
+  document.getElementById('btn-save').onclick = () => saveStation(s.id);
+
+  // Delete
+  document.getElementById('btn-delete').onclick = () => deleteStation(s.id, s.name);
+}
+
+function renderLinksPreview(id) {
+  const types = [
+    { key:'remote', label:'מדריך 📱', color:'var(--boarding)' },
+    { key:'door',   label:'דלת 🚪',   color:'var(--running)'  },
+    { key:'screen', label:'מסך 📺',   color:'var(--violet-light)' }
+  ];
+  return types.map(t => {
+    const url = getStationUrl(t.key, id);
+    return `<div class="link-preview-row">
+      <span class="ltype" style="color:${t.color}">${t.label}</span>
+      <span class="lurl">${url}</span>
+      <button class="copy-btn" onclick="copyToClipboard('${url}')">העתק</button>
+      <a class="open-btn" href="${url}" target="_blank">פתח ↗</a>
+    </div>`;
+  }).join('');
+}
+
+function setColor(color, el) {
+  document.querySelectorAll('.color-swatch').forEach(sw => sw.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('f-color').value = color;
+}
+
+async function saveStation(id) {
+  const station = allStations.find(s => s.id === id);
+  if (!station) return;
+  const updates = {
+    name:                document.getElementById('f-name').value.trim()           || station.name,
+    topic:               document.getElementById('f-topic').value.trim(),
+    topicColor:          document.getElementById('f-color').value,
+    videoUrl:            document.getElementById('f-video').value.trim(),
+    activityDuration:    parseInt(document.getElementById('f-duration').value)     || 25,
+    setupDuration:       parseInt(document.getElementById('f-setup').value)        || 7,
+    boardingDuration:    parseInt(document.getElementById('f-boarding').value)     || 5,
+    autoTransitionDelay: parseInt(document.getElementById('f-autotransition').value)||3,
+    order:               parseInt(document.getElementById('f-order').value)        || 0,
+    enabled:             document.getElementById('f-enabled').checked,
+    lastUpdated:         Date.now()
+  };
+  try {
+    await stationRef(id).update(updates);
+    showToast('נשמר בהצלחה!', 'success');
+  } catch(e) {
+    showToast('שגיאה בשמירה', 'error');
+  }
+}
+
+async function deleteStation(id, name) {
+  if (!confirm(`האם למחוק את "${name}"? פעולה זו בלתי הפיכה.`)) return;
+  await stationRef(id).remove();
+  activeId = null;
+  document.getElementById('form-container').innerHTML = '<div class="empty-state"><div class="icon">🔧</div><p>בחר מתחם מהרשימה</p></div>';
+  showToast('מתחם נמחק', 'warning');
+}
+
+async function resetStation(id) {
+  await stationRef(id).update({ status:'idle',sessionStartTime:0,sessionEndTime:0,nextSessionTime:0,lastUpdated:Date.now() });
+  showToast('מתחם אופס', 'success');
+}
+
+async function closeStation(id) {
+  await stationRef(id).update({ status:'closed', lastUpdated:Date.now() });
+  showToast('מתחם סומן כסגור', 'warning');
+}
+</script>
+</body>
+</html>

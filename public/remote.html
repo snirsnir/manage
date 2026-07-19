@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>מדריך | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#03031a">
+  <style>
+    body { overflow: hidden; }
+
+    .remote-layout {
+      display: flex; flex-direction: column;
+      height: 100dvh; max-height: 100dvh;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    /* Top bar */
+    .remote-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .remote-brand { display:flex;align-items:center;gap:10px; }
+    .remote-brand img { height:32px;filter:drop-shadow(0 0 8px rgba(0,229,255,.4)); }
+    .remote-brand .brand-name { font-size:.85rem;font-weight:700;color:var(--cyan); }
+    #remote-clock { font-family:var(--font-display);font-size:1rem;color:var(--text-300); }
+
+    /* Station info */
+    .station-info {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg); padding: 16px 20px;
+      flex-shrink: 0;
+    }
+    .station-info .station-name  { font-size:1.4rem;font-weight:800;color:var(--text-100); }
+    .station-info .station-topic { font-size:.85rem;margin-top:2px; }
+    .station-info .badge         { margin-top:10px; }
+
+    /* Timer section */
+    .timer-section {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg); padding: 20px;
+      text-align: center; flex-shrink: 0;
+    }
+    .timer-label { font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-400);margin-bottom:8px; }
+    #main-timer  { font-size:4.5rem;letter-spacing:4px; }
+    .timer-sub   { font-size:.8rem;color:var(--text-300);margin-top:8px; }
+    #progress-wrap { margin-top:12px; }
+
+    /* Main action button */
+    .main-action { flex-shrink: 0; }
+    #btn-main {
+      width:100%; min-height:90px; font-size:1.6rem; border-radius:var(--r-xl);
+      letter-spacing:.02em;
+    }
+
+    /* Time extension row */
+    .extend-row {
+      display: flex; gap: 10px; flex-shrink: 0;
+    }
+    .extend-row .btn { flex: 1; font-size:1rem; padding:14px 0; }
+
+    /* Next session info */
+    .next-info {
+      background: rgba(33,150,243,.08); border: 1px solid rgba(33,150,243,.2);
+      border-radius: var(--r-md); padding: 12px 18px;
+      font-size:.85rem; color:var(--text-300); text-align:center; flex-shrink:0;
+    }
+    .next-info strong { color:var(--text-100); font-size:1rem; }
+
+    /* Manager message banner */
+    #manager-msg-bar {
+      background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);
+      border-radius:var(--r-md);padding:10px 16px;
+      font-size:.85rem;color:#ffe082;flex-shrink:0;display:none;
+    }
+
+    /* Alert overlay */
+    .alert-overlay {
+      position:fixed;inset:0;z-index:500;
+      background:rgba(244,67,54,.15);
+      border:4px solid var(--closed);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:16px;padding:24px;text-align:center;
+      animation:flash-border 1s ease-in-out infinite;
+    }
+    @keyframes flash-border { 0%,100%{border-color:var(--closed)} 50%{border-color:rgba(244,67,54,.2)} }
+    .alert-overlay h2 { font-size:1.8rem;font-weight:900;color:var(--closed); }
+    .alert-overlay p  { color:var(--text-200);font-size:1rem; }
+    .alert-overlay .btn { min-width:200px; }
+
+    @media(max-width:380px) {
+      #main-timer { font-size:3.5rem; }
+      #btn-main   { font-size:1.35rem;min-height:76px; }
+    }
+  </style>
+</head>
+<body>
+<div id="offline-banner">אין חיבור לאינטרנט — עודכן לאחרונה: <span id="last-sync">?</span></div>
+
+<div class="page-content">
+<div class="remote-layout">
+
+  <!-- Top bar -->
+  <div class="remote-topbar">
+    <div class="remote-brand">
+      <img src="logo.png" alt="טכנודע">
+      <span class="brand-name">טכנושף</span>
+    </div>
+    <div id="remote-clock">--:--</div>
+  </div>
+
+  <!-- Manager message -->
+  <div id="manager-msg-bar">📢 <span id="manager-msg-text"></span></div>
+
+  <!-- Station info -->
+  <div class="station-info" id="station-info">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-section">
+    <div class="timer-label" id="timer-label">מצב</div>
+    <div class="timer-display" id="main-timer" style="font-size:4.5rem;letter-spacing:4px;">--:--</div>
+    <div class="timer-sub" id="timer-sub"></div>
+    <div id="progress-wrap"><div class="progress"><div class="progress__fill" id="prog-fill" style="width:0%"></div></div></div>
+  </div>
+
+  <!-- Main CTA button -->
+  <div class="main-action">
+    <button class="btn" id="btn-main" disabled>טוען...</button>
+  </div>
+
+  <!-- Extend time row (hidden when not running) -->
+  <div class="extend-row" id="extend-row" style="display:none;">
+    <button class="btn btn--ghost" onclick="doExtend(5)">+5 דקות</button>
+    <button class="btn btn--ghost" onclick="doExtend(10)">+10 דקות</button>
+    <button class="btn btn--warning btn--sm" onclick="doEarlyEnd()">סיים מוקדם</button>
+  </div>
+
+  <!-- Next session -->
+  <div class="next-info" id="next-info" style="display:none;">
+    הסבב הבא מתחיל ב-<strong id="next-time">--:--</strong>
+    <span id="next-rel" style="color:var(--text-400);font-size:.8rem;"></span>
+  </div>
+
+</div>
+</div>
+
+<!-- Forgot-me alert overlay (shown when timer expired > autoTransitionDelay minutes) -->
+<div id="alert-overlay" style="display:none;" class="alert-overlay">
+  <h2>⏰ האם סיימתם?</h2>
+  <p>הטיימר פג לפני מספר דקות.<br>אנא בחרו פעולה:</p>
+  <button class="btn btn--success btn--lg" onclick="doAction('setup')">✅ כן, הפעילות הסתיימה</button>
+  <button class="btn btn--ghost" onclick="dismissAlert()">אנחנו עדיין פעילים</button>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const stationId = getParam('station');
+if (!stationId) {
+  document.body.innerHTML = '<div style="padding:40px;text-align:center;"><h2>לא צוין מתחם</h2><p style="color:#94a3b8;margin-top:8px;">הוסף <code>?station=ID</code> לכתובת</p><a href="index.html" style="color:#00e5ff;">לדף הבית</a></div>';
+}
+
+let station         = null;
+let timerInterval   = null;
+let alertShown      = false;
+let alertDismissed  = false;
+let lastSyncTime    = null;
+
+initOfflineDetector();
+
+// Clock
+setInterval(() => {
+  document.getElementById('remote-clock').textContent =
+    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+}, 1000);
+
+// Listen to station
+stationRef(stationId).on('value', snap => {
+  station = snap.val();
+  lastSyncTime = Date.now();
+  document.getElementById('last-sync').textContent = formatTime(lastSyncTime);
+  if (!station) {
+    document.getElementById('station-info').innerHTML = '<div style="color:var(--closed)">מתחם לא נמצא</div>';
+    return;
+  }
+  renderStation();
+  alertDismissed = false;
+});
+
+function renderStation() {
+  if (!station) return;
+  const st = station.status || 'idle';
+  const color = station.topicColor || 'var(--cyan)';
+
+  // Station info
+  document.getElementById('station-info').innerHTML = `
+    <div class="station-name">${station.name}</div>
+    <div class="station-topic" style="color:${color}">${station.topic||''}</div>
+    <div class="mt-8">
+      <span class="badge badge--${st}"><span class="badge-dot"></span>${STATUS[st].label}</span>
+    </div>`;
+
+  // Manager message
+  const msgBar  = document.getElementById('manager-msg-bar');
+  const msgText = document.getElementById('manager-msg-text');
+  if (station.managerMessage && station.managerMessage.trim()) {
+    msgBar.style.display = 'block';
+    msgText.textContent  = station.managerMessage;
+  } else {
+    msgBar.style.display = 'none';
+  }
+
+  // Extend row / next info
+  document.getElementById('extend-row').style.display = st === 'running' ? 'flex' : 'none';
+
+  const nextInfo = document.getElementById('next-info');
+  if ((st === 'running' || st === 'boarding') && station.nextSessionTime) {
+    nextInfo.style.display = 'block';
+    document.getElementById('next-time').textContent = formatTime(station.nextSessionTime);
+  } else {
+    nextInfo.style.display = 'none';
+  }
+
+  // Main button
+  updateMainButton(st);
+
+  // Start/restart interval
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tickTimer, 500);
+  tickTimer();
+}
+
+function updateMainButton(st) {
+  const btn = document.getElementById('btn-main');
+  btn.disabled = false;
+  btn.className = 'btn';
+
+  const actions = {
+    idle:     { label:'🟢 פתח קליטת קהל',   cls:'btn--success', next:'boarding' },
+    boarding: { label:'▶ התחל פעילות!',      cls:'btn--primary', next:'running'  },
+    running:  { label:'⏹ סיים פעילות',       cls:'btn--warning', next:'setup'    },
+    setup:    { label:'🚪 פתח קליטת קהל',   cls:'btn--success', next:'boarding'  },
+    closed:   { label:'מתחם סגור',            cls:'btn--ghost',   next:null        }
+  };
+
+  const a = actions[st] || actions.idle;
+  btn.textContent = a.label;
+  btn.classList.add('btn--xxl', a.cls);
+  if (!a.next) { btn.disabled = true; return; }
+  btn.onclick = () => doAction(a.next);
+}
+
+function tickTimer() {
+  if (!station) return;
+  const st  = station.status || 'idle';
+  const now = Date.now();
+  const timerEl   = document.getElementById('main-timer');
+  const labelEl   = document.getElementById('timer-label');
+  const subEl     = document.getElementById('timer-sub');
+  const progEl    = document.getElementById('prog-fill');
+  const nextRelEl = document.getElementById('next-rel');
+
+  // Update next session relative time
+  if (station.nextSessionTime && nextRelEl) {
+    nextRelEl.textContent = formatTimeUntil(station.nextSessionTime);
+  }
+
+  let secs = 0, pct = 0, label = '', sub = '', progClass = '';
+
+  if (st === 'running' && station.sessionEndTime) {
+    secs  = Math.max(0, Math.round((station.sessionEndTime - now) / 1000));
+    const total = (station.activityDuration||25)*60;
+    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label = 'נותר לפעילות';
+    sub   = `התחיל: ${formatTime(station.sessionStartTime)}`;
+    progClass = 'progress__fill--running';
+
+    // Alert logic
+    if (secs === 0 && !alertShown && !alertDismissed) {
+      const autoDelay = (station.autoTransitionDelay || 3) * 60 * 1000;
+      setTimeout(() => {
+        if ((station.status === 'running') && !alertDismissed) {
+          alertShown = true;
+          document.getElementById('alert-overlay').style.display = 'flex';
+        }
+      }, autoDelay);
+    }
+
+  } else if (st === 'boarding' && station.boardingEndTime) {
+    secs  = Math.max(0, Math.round((station.boardingEndTime - now) / 1000));
+    const total = (station.boardingDuration||5)*60;
+    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label = 'לסיום קליטה';
+    progClass = 'progress__fill--boarding';
+
+  } else if (st === 'setup' && station.setupEndTime) {
+    secs  = Math.max(0, Math.round((station.setupEndTime - now) / 1000));
+    const total = (station.setupDuration||7)*60;
+    pct   = Math.min(100, Math.round(((total - secs) / total) * 100));
+    label = 'לסיום הכנה';
+    sub   = 'הסבב הבא יפתח בקרוב';
+    progClass = 'progress__fill--setup';
+
+  } else {
+    timerEl.textContent = '--:--';
+    timerEl.className   = 'timer-display';
+    labelEl.textContent = STATUS[st].label;
+    subEl.textContent   = '';
+    progEl.style.width  = '0%';
+    return;
+  }
+
+  timerEl.textContent = formatTimer(secs);
+  timerEl.className   = `timer-display ${secs < 60 ? 'timer-display--danger' : secs < 180 ? 'timer-display--warn' : ''}`;
+  labelEl.textContent = label;
+  subEl.textContent   = sub;
+  progEl.className    = `progress__fill ${progClass}`;
+  progEl.style.width  = pct + '%';
+}
+
+async function doAction(newStatus) {
+  if (!station) return;
+  document.getElementById('btn-main').disabled = true;
+  document.getElementById('alert-overlay').style.display = 'none';
+  alertShown = false;
+  try {
+    await transitionStation(stationId, newStatus, station);
+    showToast(STATUS[newStatus].label, 'success');
+  } catch(e) {
+    showToast('שגיאה בחיבור', 'error');
+    document.getElementById('btn-main').disabled = false;
+  }
+}
+
+async function doExtend(mins) {
+  if (!station || station.status !== 'running') return;
+  await extendSession(stationId, station, mins);
+  showToast(`הוספו ${mins} דקות`, 'success');
+}
+
+async function doEarlyEnd() {
+  if (!station) return;
+  await transitionStation(stationId, 'setup', station, { earlyEnd: true });
+  showToast('הפעילות הסתיימה', 'success');
+}
+
+function dismissAlert() {
+  alertDismissed = true;
+  alertShown     = false;
+  document.getElementById('alert-overlay').style.display = 'none';
+}
+</script>
+</body>
+</html>

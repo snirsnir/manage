@@ -1,0 +1,22 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/admin", "destination": "/admin.html" },
+      { "source": "/dashboard", "destination": "/dashboard.html" },
+      { "source": "/remote", "destination": "/remote.html" },
+      { "source": "/door", "destination": "/door.html" },
+      { "source": "/screen", "destination": "/screen.html" },
+      { "source": "/board", "destination": "/board.html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
+  }
+}

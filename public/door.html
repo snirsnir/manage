@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>מסך דלת | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { cursor: none; }
+    body { overflow: hidden; height: 100dvh; background: var(--bg-0); }
+
+    .door-screen {
+      width: 100vw; height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: space-between;
+      padding: 40px 60px; text-align: center;
+      transition: background 0.8s ease;
+      position: relative; overflow: hidden;
+    }
+
+    /* Animated glow background */
+    .door-screen::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      transition: background 0.8s ease;
+    }
+    .door-screen.status-idle::before     { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(84,110,122,.2) 0%, transparent 70%); }
+    .door-screen.status-boarding::before { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,230,118,.18) 0%, transparent 70%); }
+    .door-screen.status-running::before  { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(33,150,243,.18) 0%, transparent 70%); }
+    .door-screen.status-setup::before    { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,193,7,.15) 0%, transparent 70%); }
+    .door-screen.status-closed::before   { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(244,67,54,.18) 0%, transparent 70%); }
+
+    /* Floating particles */
+    .particle {
+      position: absolute; border-radius: 50%; z-index: 0; pointer-events: none;
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0%   { transform: translateY(100vh) translateX(0)  scale(0); opacity: 0; }
+      10%  { opacity: .6; }
+      90%  { opacity: .3; }
+      100% { transform: translateY(-20vh) translateX(var(--dx)) scale(1); opacity: 0; }
+    }
+
+    .door-screen > * { position: relative; z-index: 1; }
+
+    /* Top section */
+    .door-top { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .door-logo { height: 70px; filter: drop-shadow(0 0 20px rgba(0,229,255,.5)); }
+    .door-event-name { font-size: 1.4rem; font-weight: 700; color: var(--text-300); letter-spacing: .08em; }
+
+    /* Middle — main content */
+    .door-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+
+    .door-station-name  { font-size: 3.5rem; font-weight: 900; color: var(--text-100); line-height: 1.1; }
+    .door-station-topic { font-size: 1.8rem; font-weight: 600; margin-top: 4px; }
+
+    .door-status-icon { font-size: 6rem; line-height: 1; }
+
+    .door-status-label {
+      font-size: 2.2rem; font-weight: 800; letter-spacing: .05em;
+      padding: 14px 48px; border-radius: 100px;
+      border: 3px solid currentColor;
+      box-shadow: 0 0 30px currentColor;
+    }
+    .door-status-label.status-idle     { color: var(--idle);     }
+    .door-status-label.status-boarding { color: var(--boarding); animation: pulse-label 2s ease-in-out infinite; }
+    .door-status-label.status-running  { color: var(--running);  }
+    .door-status-label.status-setup    { color: var(--setup);    }
+    .door-status-label.status-closed   { color: var(--closed);   }
+    @keyframes pulse-label { 0%,100%{box-shadow:0 0 20px currentColor} 50%{box-shadow:0 0 50px currentColor,0 0 80px currentColor} }
+
+    /* Next session block */
+    .door-next-block {
+      background: rgba(0,0,0,.4); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--r-xl); padding: 28px 56px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .door-next-label { font-size: 1.2rem; color: var(--text-300); font-weight: 600; }
+    .door-next-time  { font-family: var(--font-display); font-size: 5rem; font-weight: 900; letter-spacing: 6px; color: var(--text-100); text-shadow: 0 0 30px rgba(0,229,255,.5); }
+    .door-next-rel   { font-size: 1.4rem; color: var(--text-300); }
+
+    /* Countdown ring (boarding) */
+    .countdown-ring-wrap { position: relative; }
+    .countdown-ring { transform: rotate(-90deg); }
+    .ring-bg   { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 6; }
+    .ring-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+    .ring-time { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-time-num { font-family: var(--font-display); font-size: 3.5rem; font-weight: 900; }
+    .ring-time-lbl { font-size: .9rem; color: var(--text-300); font-weight: 600; }
+
+    /* Manager message */
+    #door-msg-bar {
+      background: rgba(255,193,7,.15); border: 2px solid rgba(255,193,7,.5);
+      border-radius: var(--r-lg); padding: 16px 32px;
+      font-size: 1.5rem; font-weight: 700; color: #ffe082;
+      max-width: 700px; display: none;
+    }
+
+    /* Bottom bar */
+    .door-bottom { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .door-clock  { font-family: var(--font-display); font-size: 2.8rem; font-weight: 700; color: var(--text-300); letter-spacing: 4px; }
+    .door-offline { font-size: .9rem; color: var(--closed); display: none; }
+    .door-offline.visible { display: block; }
+  </style>
+</head>
+<body>
+<div class="door-screen" id="door-screen">
+  <!-- Particles will be injected by JS -->
+
+  <div class="door-top">
+    <img src="logo.png" alt="טכנודע" class="door-logo">
+    <div class="door-event-name">טכנושף</div>
+  </div>
+
+  <div class="door-main" id="door-main">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <div id="door-msg-bar"></div>
+
+  <div class="door-bottom">
+    <div class="door-clock" id="door-clock">--:--</div>
+    <div class="door-offline" id="door-offline">🔴 ללא חיבור — עודכן לפני <span id="since"></span></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const stationId = getParam('station');
+if (!stationId) {
+  document.getElementById('door-main').innerHTML = '<h2 style="color:var(--closed)">לא צוין מתחם<br><small>?station=ID</small></h2>';
+}
+
+let station  = null;
+let timerInt = null;
+let lastSync = null;
+
+// Particles
+function spawnParticles(color) {
+  document.querySelectorAll('.particle').forEach(p => p.remove());
+  if (!color) return;
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 6 + 3;
+    const dx   = (Math.random() - 0.5) * 200;
+    const dur  = Math.random() * 8 + 6;
+    const del  = Math.random() * 8;
+    Object.assign(p.style, {
+      width: size+'px', height: size+'px',
+      background: color, left: Math.random()*100+'%',
+      '--dx': dx+'px',
+      animationDuration: dur+'s', animationDelay: del+'s',
+      opacity: 0
+    });
+    document.getElementById('door-screen').appendChild(p);
+  }
+}
+
+// Clock
+setInterval(() => {
+  document.getElementById('door-clock').textContent =
+    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  if (lastSync) {
+    const secsSince = Math.round((Date.now()-lastSync)/1000);
+    document.getElementById('since').textContent = secsSince < 60
+      ? `${secsSince} שניות`
+      : `${Math.floor(secsSince/60)} דקות`;
+  }
+}, 1000);
+
+// Offline detection
+window.addEventListener('offline', () => document.getElementById('door-offline').classList.add('visible'));
+window.addEventListener('online',  () => document.getElementById('door-offline').classList.remove('visible'));
+
+// Firebase
+stationRef(stationId).on('value', snap => {
+  station  = snap.val();
+  lastSync = Date.now();
+  if (!station) {
+    document.getElementById('door-main').innerHTML = '<h2 style="color:var(--closed)">מתחם לא נמצא</h2>';
+    return;
+  }
+  renderDoor();
+  clearInterval(timerInt);
+  timerInt = setInterval(tickDoor, 1000);
+});
+
+function renderDoor() {
+  if (!station) return;
+  const st    = station.status || 'idle';
+  const color = station.topicColor || 'var(--cyan)';
+  const screen = document.getElementById('door-screen');
+
+  // Update background class
+  screen.className = `door-screen status-${st}`;
+  spawnParticles(STATUS_COLORS[st]);
+
+  // Manager message
+  const msgBar = document.getElementById('door-msg-bar');
+  if (station.managerMessage && station.managerMessage.trim()) {
+    msgBar.style.display = 'block';
+    msgBar.textContent   = '📢 ' + station.managerMessage;
+  } else {
+    msgBar.style.display = 'none';
+  }
+
+  // Rebuild main content
+  const main = document.getElementById('door-main');
+
+  const stationHeader = `
+    <div class="door-station-name">${station.name}</div>
+    <div class="door-station-topic" style="color:${color}">${station.topic||''}</div>`;
+
+  const statusLabel = `
+    <div class="door-status-label status-${st}">${STATUS[st].label}</div>`;
+
+  let body = '';
+
+  if (st === 'idle') {
+    body = `
+      ${stationHeader}
+      <div class="door-status-icon">⬜</div>
+      ${statusLabel}
+      <p style="color:var(--text-300);font-size:1.3rem;">המתחם עדיין לא נפתח</p>`;
+
+  } else if (st === 'boarding') {
+    body = `
+      ${stationHeader}
+      <div class="door-status-icon">🟢</div>
+      ${statusLabel}
+      <p style="color:var(--boarding);font-size:1.6rem;font-weight:700;">הכנסו עכשיו!</p>
+      <div id="boarding-ring"></div>`;
+
+  } else if (st === 'running') {
+    body = `
+      ${stationHeader}
+      <div class="door-status-icon">🔵</div>
+      ${statusLabel}
+      ${station.nextSessionTime ? `
+        <div class="door-next-block">
+          <div class="door-next-label">הסבב הבא מתחיל ב-</div>
+          <div class="door-next-time" id="door-next-time">${formatTime(station.nextSessionTime)}</div>
+          <div class="door-next-rel"  id="door-next-rel">${formatTimeUntil(station.nextSessionTime)}</div>
+        </div>` : ''}`;
+
+  } else if (st === 'setup') {
+    body = `
+      ${stationHeader}
+      <div class="door-status-icon">🟡</div>
+      ${statusLabel}
+      ${station.nextSessionTime ? `
+        <div class="door-next-block">
+          <div class="door-next-label">הסבב הבא ב-</div>
+          <div class="door-next-time" id="door-next-time">${formatTime(station.nextSessionTime)}</div>
+          <div class="door-next-rel"  id="door-next-rel">${formatTimeUntil(station.nextSessionTime)}</div>
+        </div>` : ''}`;
+
+  } else if (st === 'closed') {
+    body = `
+      ${stationHeader}
+      <div class="door-status-icon">🔴</div>
+      ${statusLabel}
+      <p style="color:var(--text-300);font-size:1.3rem;">המתחם סגור כרגע</p>`;
+  }
+
+  main.innerHTML = body;
+  if (st === 'boarding') renderBoardingRing();
+}
+
+function renderBoardingRing() {
+  const wrap = document.getElementById('boarding-ring');
+  if (!wrap) return;
+  const r = 80, C = 2 * Math.PI * r;
+  wrap.innerHTML = `
+    <div class="countdown-ring-wrap">
+      <svg class="countdown-ring" width="200" height="200" viewBox="0 0 200 200">
+        <circle class="ring-bg"   cx="100" cy="100" r="${r}"/>
+        <circle class="ring-fill" cx="100" cy="100" r="${r}"
+          id="ring-arc"
+          stroke="${STATUS_COLORS['boarding']}"
+          stroke-dasharray="${C}"
+          stroke-dashoffset="${C}"/>
+      </svg>
+      <div class="ring-time">
+        <div class="ring-time-num" id="ring-num" style="color:${STATUS_COLORS['boarding']}">--</div>
+        <div class="ring-time-lbl">שניות</div>
+      </div>
+    </div>`;
+}
+
+function tickDoor() {
+  if (!station) return;
+  const st  = station.status || 'idle';
+  const now = Date.now();
+
+  // Next time labels
+  const nextTimeEl = document.getElementById('door-next-time');
+  const nextRelEl  = document.getElementById('door-next-rel');
+  if (nextTimeEl && station.nextSessionTime) nextTimeEl.textContent = formatTime(station.nextSessionTime);
+  if (nextRelEl  && station.nextSessionTime) nextRelEl.textContent  = formatTimeUntil(station.nextSessionTime);
+
+  // Boarding ring
+  if (st === 'boarding' && station.boardingEndTime) {
+    const secs  = Math.max(0, Math.round((station.boardingEndTime - now) / 1000));
+    const total = (station.boardingDuration||5)*60;
+    const r = 80, C = 2 * Math.PI * r;
+    const offset = C - (C * (total - secs) / total);
+    const arcEl  = document.getElementById('ring-arc');
+    const numEl  = document.getElementById('ring-num');
+    if (arcEl) arcEl.style.strokeDashoffset = Math.max(0, offset);
+    if (numEl) numEl.textContent = secs;
+  }
+}
+</script>
+</body>
+</html>

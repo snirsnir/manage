@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>מסך מעבדה | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { cursor: none; }
+    html, body { height: 100dvh; overflow: hidden; background: #000; }
+
+    /* Full-screen video container */
+    #video-container {
+      position: fixed; inset: 0; z-index: 10;
+      background: #000; display: none;
+    }
+    #video-container iframe,
+    #video-container video {
+      width: 100%; height: 100%; border: none; display: block;
+    }
+
+    /* Overlay UI (shown when no video / before/after activity) */
+    .screen-ui {
+      position: fixed; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: space-between;
+      padding: 50px 80px; text-align: center;
+      transition: background 0.8s;
+    }
+
+    .screen-ui::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      transition: background 0.8s;
+    }
+    .screen-ui.status-idle::before     { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(84,110,122,.25) 0%, transparent 70%); }
+    .screen-ui.status-boarding::before { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,230,118,.2)  0%, transparent 70%); }
+    .screen-ui.status-setup::before    { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,193,7,.18) 0%, transparent 70%); }
+    .screen-ui.status-closed::before   { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(244,67,54,.2)  0%, transparent 70%); }
+    .screen-ui > * { position: relative; z-index: 1; }
+
+    /* Top */
+    .screen-top { display:flex;align-items:center;gap:20px; }
+    .screen-logo { height:60px; filter:drop-shadow(0 0 16px rgba(0,229,255,.4)); }
+    .screen-event { font-size:1.6rem;font-weight:700;color:var(--text-300); }
+
+    /* Middle */
+    .screen-mid { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px; }
+    .screen-station-name  { font-size:4.5rem;font-weight:900;color:var(--text-100);line-height:1.05; }
+    .screen-station-topic { font-size:2.2rem;font-weight:600; }
+    .screen-status-icon   { font-size:7rem;line-height:1; }
+
+    .screen-status-pill {
+      font-size:2rem;font-weight:800;letter-spacing:.06em;
+      padding:18px 64px;border-radius:100px;border:3px solid currentColor;
+      box-shadow:0 0 40px currentColor;
+    }
+    .screen-status-pill.status-boarding { color:var(--boarding); animation:glow-boarding 2s ease-in-out infinite; }
+    .screen-status-pill.status-setup    { color:var(--setup); }
+    .screen-status-pill.status-closed   { color:var(--closed); }
+    .screen-status-pill.status-idle     { color:var(--idle); border-color:rgba(84,110,122,.4); box-shadow:none; }
+    @keyframes glow-boarding { 0%,100%{box-shadow:0 0 30px var(--boarding)} 50%{box-shadow:0 0 60px var(--boarding),0 0 100px rgba(0,230,118,.3)} }
+
+    /* Boarding countdown */
+    .boarding-countdown { text-align:center; }
+    .boarding-countdown .label { font-size:1.4rem;color:var(--text-300);margin-bottom:12px; }
+    .boarding-countdown .num {
+      font-family:var(--font-display);font-size:8rem;font-weight:900;
+      color:var(--boarding);text-shadow:0 0 40px rgba(0,230,118,.6);
+      letter-spacing:6px;
+    }
+    .boarding-countdown .suf { font-size:1.8rem;color:var(--text-300); }
+
+    /* Next session (setup state) */
+    .next-block {
+      background:rgba(0,0,0,.5);backdrop-filter:blur(12px);
+      border:2px solid rgba(255,255,255,.1);border-radius:var(--r-xl);
+      padding:36px 80px;
+    }
+    .next-block .nl   { font-size:1.6rem;color:var(--text-300);font-weight:600; }
+    .next-block .nt   { font-family:var(--font-display);font-size:7rem;font-weight:900;
+                        color:var(--text-100);text-shadow:0 0 30px rgba(0,229,255,.4);letter-spacing:8px; }
+    .next-block .nr   { font-size:1.8rem;color:var(--text-300); }
+
+    /* Thank you card */
+    .thank-you { font-size:3.5rem;font-weight:900;color:var(--setup);
+                 text-shadow:0 0 30px rgba(255,193,7,.4); }
+
+    /* Bottom */
+    .screen-bottom { display:flex;align-items:center;justify-content:space-between;width:100%; }
+    .screen-clock  { font-family:var(--font-display);font-size:3.2rem;color:var(--text-300);letter-spacing:4px; }
+    .screen-offline { font-size:1rem;color:var(--closed);display:none; }
+    .screen-offline.visible { display:block; }
+
+    /* Transition overlay (subtle flash when status changes) */
+    .transition-flash {
+      position:fixed;inset:0;z-index:20;pointer-events:none;
+      background:rgba(0,229,255,.08);opacity:0;transition:opacity .3s;
+    }
+    .transition-flash.active { opacity:1; }
+  </style>
+</head>
+<body>
+
+<!-- Video player layer -->
+<div id="video-container"></div>
+
+<!-- Transition flash -->
+<div class="transition-flash" id="t-flash"></div>
+
+<!-- UI overlay -->
+<div class="screen-ui" id="screen-ui">
+  <div class="screen-top">
+    <img src="logo.png" class="screen-logo" alt="טכנודע">
+    <span class="screen-event">טכנושף</span>
+  </div>
+  <div class="screen-mid" id="screen-mid">
+    <div class="loading"><div class="spinner" style="width:64px;height:64px;"></div></div>
+  </div>
+  <div class="screen-bottom">
+    <div class="screen-clock" id="screen-clock">--:--</div>
+    <div class="screen-offline" id="screen-offline">⚠️ ללא חיבור</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+const stationId = getParam('station');
+if (!stationId) {
+  document.getElementById('screen-mid').innerHTML = '<h2 style="color:var(--closed)">לא צוין מתחם</h2>';
+}
+
+let station     = null;
+let prevStatus  = null;
+let ytPlayer    = null;
+let ytReady     = false;
+let timerInt    = null;
+
+// Clock
+setInterval(() => {
+  document.getElementById('screen-clock').textContent =
+    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+}, 1000);
+
+// Offline
+window.addEventListener('offline', () => document.getElementById('screen-offline').classList.add('visible'));
+window.addEventListener('online',  () => document.getElementById('screen-offline').classList.remove('visible'));
+
+// YouTube API callback
+function onYouTubeIframeAPIReady() { ytReady = true; }
+
+// Firebase
+stationRef(stationId).on('value', snap => {
+  const prev    = station;
+  station       = snap.val();
+  if (!station) { document.getElementById('screen-mid').innerHTML = '<h2 style="color:var(--closed)">מתחם לא נמצא</h2>'; return; }
+
+  const st = station.status || 'idle';
+  if (prev && prev.status !== st) flashTransition();
+
+  // Handle video playback
+  if (st === 'running') {
+    startVideo();
+  } else {
+    stopVideo();
+    renderScreenUI(st);
+  }
+
+  clearInterval(timerInt);
+  timerInt = setInterval(tickScreen, 1000);
+});
+
+function flashTransition() {
+  const el = document.getElementById('t-flash');
+  el.classList.add('active');
+  setTimeout(() => el.classList.remove('active'), 400);
+}
+
+// ── Video ──
+function startVideo() {
+  if (!station.videoUrl) { renderScreenUI('running'); return; }
+  const v = detectVideo(station.videoUrl);
+  if (!v) return;
+
+  const container = document.getElementById('video-container');
+  document.getElementById('screen-ui').style.display = 'none';
+  container.style.display = 'block';
+  container.innerHTML = '';
+
+  if (v.type === 'youtube') {
+    // Use YouTube IFrame API for reliable autoplay
+    const div = document.createElement('div');
+    div.id = 'yt-player';
+    container.appendChild(div);
+    if (ytReady) {
+      initYTPlayer(v.id);
+    } else {
+      // Poll until ready
+      const poll = setInterval(() => {
+        if (ytReady) { clearInterval(poll); initYTPlayer(v.id); }
+      }, 100);
+    }
+  } else if (v.type === 'video') {
+    const vid = document.createElement('video');
+    vid.src     = v.url;
+    vid.autoplay = true;
+    vid.controls = false;
+    vid.loop     = false;
+    vid.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;';
+    vid.addEventListener('ended', () => {
+      // Show waiting screen when video ends
+      stopVideo();
+      renderScreenUI(station.status || 'running');
+    });
+    container.appendChild(vid);
+    vid.play().catch(() => {
+      // Autoplay blocked — show a play button overlay
+      container.innerHTML += `<div onclick="this.previousSibling.play();this.remove()" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);font-size:6rem;cursor:pointer;z-index:5;">▶</div>`;
+    });
+  } else {
+    const iframe = document.createElement('iframe');
+    iframe.src   = v.type === 'vimeo'
+      ? `https://player.vimeo.com/video/${v.id}?autoplay=1&title=0&byline=0&portrait=0`
+      : v.type === 'gdrive'
+        ? `https://drive.google.com/file/d/${v.id}/preview`
+        : v.url;
+    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+  }
+}
+
+function initYTPlayer(videoId) {
+  ytPlayer = new YT.Player('yt-player', {
+    videoId,
+    playerVars: { autoplay:1, controls:0, rel:0, modestbranding:1, playsinline:1, fs:0 },
+    width: '100%', height: '100%',
+    events: {
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.ENDED) {
+          stopVideo();
+          renderScreenUI(station.status || 'running');
+        }
+      }
+    }
+  });
+}
+
+function stopVideo() {
+  const container = document.getElementById('video-container');
+  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+    ytPlayer.stopVideo();
+    ytPlayer.destroy();
+    ytPlayer = null;
+  }
+  container.innerHTML = '';
+  container.style.display = 'none';
+  document.getElementById('screen-ui').style.display = 'flex';
+}
+
+// ── UI render ──
+function renderScreenUI(st) {
+  const mid   = document.getElementById('screen-mid');
+  const color = station.topicColor || 'var(--cyan)';
+  document.getElementById('screen-ui').className = `screen-ui status-${st}`;
+
+  const header = `
+    <div class="screen-station-name">${station.name}</div>
+    <div class="screen-station-topic" style="color:${color}">${station.topic||''}</div>`;
+
+  if (st === 'idle') {
+    mid.innerHTML = `
+      ${header}
+      <div class="screen-status-icon">⬜</div>
+      <div class="screen-status-pill status-idle">ממתין לפתיחה</div>`;
+
+  } else if (st === 'boarding') {
+    mid.innerHTML = `
+      ${header}
+      <div class="screen-status-icon">🟢</div>
+      <div class="screen-status-pill status-boarding">הכנסו!</div>
+      <div class="boarding-countdown">
+        <div class="label">הפעילות מתחילה בעוד</div>
+        <div class="num" id="sc-countdown">--</div>
+        <div class="suf">שניות</div>
+      </div>`;
+
+  } else if (st === 'running') {
+    // Video ended or no video — show in-progress placeholder
+    mid.innerHTML = `
+      ${header}
+      <div class="screen-status-icon">🔵</div>
+      <div class="screen-status-pill" style="color:var(--running);border-color:var(--running);box-shadow:0 0 40px var(--running);">בפעילות</div>`;
+
+  } else if (st === 'setup') {
+    mid.innerHTML = `
+      ${header}
+      <div class="thank-you">תודה! 🙌</div>
+      ${station.nextSessionTime ? `
+        <div class="next-block">
+          <div class="nl">הסבב הבא מתחיל ב-</div>
+          <div class="nt" id="sc-next-time">${formatTime(station.nextSessionTime)}</div>
+          <div class="nr" id="sc-next-rel">${formatTimeUntil(station.nextSessionTime)}</div>
+        </div>` : '<div class="screen-status-pill status-setup">מתארגנים — חזרו בקרוב</div>'}`;
+
+  } else if (st === 'closed') {
+    mid.innerHTML = `
+      ${header}
+      <div class="screen-status-icon">🔴</div>
+      <div class="screen-status-pill status-closed">המתחם סגור</div>`;
+  }
+}
+
+function tickScreen() {
+  if (!station) return;
+  const st  = station.status || 'idle';
+  const now = Date.now();
+
+  // Boarding countdown
+  if (st === 'boarding' && station.boardingEndTime) {
+    const secs = Math.max(0, Math.round((station.boardingEndTime - now)/1000));
+    const el   = document.getElementById('sc-countdown');
+    if (el) el.textContent = secs;
+  }
+
+  // Setup next session
+  const ntEl = document.getElementById('sc-next-time');
+  const nrEl = document.getElementById('sc-next-rel');
+  if (ntEl && station.nextSessionTime) ntEl.textContent = formatTime(station.nextSessionTime);
+  if (nrEl && station.nextSessionTime) nrEl.textContent = formatTimeUntil(station.nextSessionTime);
+}
+</script>
+</body>
+</html>
