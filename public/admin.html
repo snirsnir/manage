@@ -155,12 +155,13 @@ function setDbStatus(ok, msg) {
 }
 
 // ── Load stations list ──
-stationsRef().orderByChild('order').on(
+stationsRef().on(
   'value',
   snap => {
     setDbStatus(true);
     allStations = [];
     snap.forEach(c => allStations.push(c.val()));
+    allStations.sort((a, b) => (a.order || 0) - (b.order || 0));
     renderSidebar();
     if (activeId) renderForm(allStations.find(s => s.id === activeId));
   },
