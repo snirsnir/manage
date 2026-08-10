@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ניהול מתחמים | טכנושף</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .admin-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; padding: 24px 0 60px; align-items: start; }
     @media(max-width:900px){ .admin-layout{grid-template-columns:1fr;} }
@@ -16,11 +17,11 @@
       transition: background .15s; border: 1px solid transparent; margin-bottom: 6px;
     }
     .station-list-item:hover { background: rgba(255,255,255,.04); border-color: var(--glass-border); }
-    .station-list-item.active { background: rgba(0,229,255,.07); border-color: var(--cyan); }
+    .station-list-item.active { background: rgba(240,180,41,.07); border-color: var(--cyan); }
     .station-list-item .dot { width:12px;height:12px;border-radius:50%;flex-shrink:0; }
     .station-list-item .info { flex:1; min-width:0; }
     .station-list-item .info .sname { font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .station-list-item .info .stopic { font-size:.75rem;color:var(--text-400); }
+    .station-list-item .info .stopic { font-size:.95rem;font-weight:600;color:var(--text-300); }
     .station-list-item .status-badge { font-size:.7rem; }
 
     /* Form section */
@@ -74,15 +75,28 @@
 <div id="offline-banner">אין חיבור לאינטרנט</div>
 
 <nav class="navbar">
+  <div class="navbar__nav">
+    <a href="dashboard.html"  class="nav-link">עמדת מנהל משמרת</a>
+    <a href="board.html"      class="nav-link">לוח סטטוס</a>
+    <a href="door.html"       class="nav-link">מסך קהל</a>
+    <a href="activities.html" class="nav-link">מסך מדריכים</a>
+    <a href="admin.html"      class="nav-link active">ניהול פעילויות</a>
+  </div>
+  <div class="theme-controls">
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="מצב אור">☀️</button>
+    <div class="accent-swatches">
+      <div class="accent-swatch active" data-accent="cyan"   style="background:#F0B429" onclick="setAccent('cyan')"   title="זהב"></div>
+      <div class="accent-swatch"        data-accent="red"    style="background:#f44336" onclick="setAccent('red')"    title="אדום"></div>
+      <div class="accent-swatch"        data-accent="green"  style="background:#00e676" onclick="setAccent('green')"  title="ירוק"></div>
+      <div class="accent-swatch"        data-accent="orange" style="background:#ff9800" onclick="setAccent('orange')" title="כתום"></div>
+      <div class="accent-swatch"        data-accent="purple" style="background:#7c4dff" onclick="setAccent('purple')" title="סגול"></div>
+      <div class="accent-swatch"        data-accent="pink"   style="background:#f06292" onclick="setAccent('pink')"   title="ורוד"></div>
+    </div>
+  </div>
   <a href="index.html" class="navbar__brand">
     <img src="logo.png" alt="טכנודע" class="navbar__logo">
     <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">מערכת ניהול</div></div>
   </a>
-  <div class="navbar__nav">
-    <a href="dashboard.html" class="nav-link">דאשבורד</a>
-    <a href="board.html"     class="nav-link">לוח מרכזי</a>
-    <a href="admin.html"     class="nav-link active">ניהול</a>
-  </div>
 </nav>
 
 <div class="page-content">
@@ -127,6 +141,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
 
@@ -158,12 +173,20 @@ function setDbStatus(ok, msg) {
 stationsRef().on(
   'value',
   snap => {
-    setDbStatus(true);
-    allStations = [];
-    snap.forEach(c => allStations.push(c.val()));
-    allStations.sort((a, b) => (a.order || 0) - (b.order || 0));
-    renderSidebar();
-    if (activeId) renderForm(allStations.find(s => s.id === activeId));
+    try {
+      setDbStatus(true);
+      allStations = [];
+      snap.forEach(c => {
+        const v = c.val();
+        if (v && v.id) allStations.push(v);
+      });
+      allStations.sort((a, b) => (a.order || 0) - (b.order || 0));
+      renderSidebar();
+      if (activeId) renderForm(allStations.find(s => s.id === activeId));
+    } catch(e) {
+      const el = document.getElementById('stations-sidebar');
+      el.innerHTML = `<div style="color:#f44336;padding:12px;font-size:.8rem;">❌ שגיאה: ${e.message}</div>`;
+    }
   },
   err => {
     setDbStatus(false, err.message);
@@ -176,23 +199,41 @@ stationsRef().on(
   }
 );
 
+function groupByFloor(list) {
+  const order  = ['lower','upper'];
+  const labels = { lower:'🏠 קומה תחתונה', upper:'🔝 קומה עליונה' };
+  const map    = {};
+  list.forEach(s => { const f = s.floor||'upper'; if (!map[f]) map[f]=[]; map[f].push(s); });
+  return order.filter(f => map[f]&&map[f].length).map(f => ({ label: labels[f]||f, stations: map[f] }));
+}
+
 function renderSidebar() {
   const el = document.getElementById('stations-sidebar');
   if (!allStations.length) {
     el.innerHTML = '<div style="text-align:center;color:var(--text-400);padding:24px;font-size:.85rem;">אין מתחמים עדיין</div>';
     return;
   }
-  el.innerHTML = allStations.map(s => `
-    <div class="station-list-item ${activeId===s.id?'active':''}" onclick="selectStation('${s.id}')">
-      <div class="dot" style="background:${s.topicColor||'var(--cyan)'};box-shadow:0 0 6px ${s.topicColor||'var(--cyan)'}"></div>
-      <div class="info">
-        <div class="sname">${s.name}</div>
-        <div class="stopic">${s.topic||'ללא נושא'}</div>
-      </div>
-      <span class="badge badge--${s.status||'idle'} station-badge" style="font-size:.65rem;padding:2px 8px;">
-        ${STATUS[s.status||'idle'].label}
-      </span>
-    </div>`).join('');
+  try {
+    const groups = groupByFloor(allStations);
+    el.innerHTML = groups.map(g => {
+      const header = `<div class="floor-section-header" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin:12px 8px 4px 0;">${g.label}</div>`;
+      const items  = g.stations.map(s => {
+        const statusKey = (s.status && STATUS[s.status]) ? s.status : 'idle';
+        const color     = s.topicColor || 'var(--cyan)';
+        return `<div class="station-list-item ${activeId===s.id?'active':''}" onclick="selectStation('${s.id}')">
+          <div class="dot" style="background:${color};box-shadow:0 0 6px ${color}"></div>
+          <div class="info">
+            <div class="sname">${s.name||'—'}</div>
+            <div class="stopic">${s.topic||'ללא נושא'}</div>
+          </div>
+          <span class="badge badge--${statusKey} station-badge" style="font-size:.65rem;padding:2px 8px;">${STATUS[statusKey].label}</span>
+        </div>`;
+      }).join('');
+      return header + items;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#f44336;padding:12px;font-size:.8rem;">❌ שגיאת רינדור: ${e.message}</div>`;
+  }
 }
 
 function selectStation(id) {
@@ -273,11 +314,11 @@ function renderForm(s) {
     </div>
 
     <div class="form-section">
-      <div class="form-section-title">סרטון פתיחה</div>
+      <div class="form-section-title">פעילות</div>
       <div class="form-group">
-        <label class="form-label">קישור לסרטון</label>
-        <input class="form-input" id="f-video" value="${s.videoUrl||''}" placeholder="YouTube / Vimeo / קישור ישיר ל-MP4">
-        <div class="form-hint">תומך ב: YouTube, Vimeo, Google Drive, קישור ישיר ל-MP4</div>
+        <label class="form-label">קישור לפעילות</label>
+        <input class="form-input" id="f-video" value="${s.videoUrl||''}" placeholder="קישור לסרטון / YouTube / Vimeo / קישור ישיר">
+        <div class="form-hint">הקישור יופעל אוטומטית כשהמדריך מתחיל פעילות • תומך ב: YouTube, Vimeo, Google Drive, MP4</div>
       </div>
       <div id="video-preview-wrap"></div>
     </div>

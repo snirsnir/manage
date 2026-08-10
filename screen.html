@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך מעבדה | טכנושף</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     * { cursor: none; }
     html, body { height: 100dvh; overflow: hidden; background: #000; }
@@ -40,7 +41,7 @@
 
     /* Top */
     .screen-top { display:flex;align-items:center;gap:20px; }
-    .screen-logo { height:60px; filter:drop-shadow(0 0 16px rgba(0,229,255,.4)); }
+    .screen-logo { height:60px; filter:drop-shadow(0 0 16px rgba(240,180,41,.4)); }
     .screen-event { font-size:1.6rem;font-weight:700;color:var(--text-300); }
 
     /* Middle */
@@ -58,6 +59,17 @@
     .screen-status-pill.status-setup    { color:var(--setup); }
     .screen-status-pill.status-closed   { color:var(--closed); }
     .screen-status-pill.status-idle     { color:var(--idle); border-color:rgba(84,110,122,.4); box-shadow:none; }
+    .screen-status-pill.status-break    { color:var(--break); }
+
+    /* Break countdown on screen */
+    .break-screen-block { text-align:center; }
+    .break-screen-label { font-size:2rem;color:rgba(255,152,0,.7);font-weight:600;margin-bottom:16px; }
+    .break-screen-timer {
+      font-family:var(--font-display);font-size:9rem;font-weight:900;
+      color:#ff9800;text-shadow:0 0 60px rgba(255,152,0,.7);
+      letter-spacing:8px;font-variant-numeric:tabular-nums;
+    }
+    .break-screen-sub   { font-size:2rem;color:rgba(255,152,0,.5);margin-top:8px; }
     @keyframes glow-boarding { 0%,100%{box-shadow:0 0 30px var(--boarding)} 50%{box-shadow:0 0 60px var(--boarding),0 0 100px rgba(0,230,118,.3)} }
 
     /* Boarding countdown */
@@ -78,7 +90,7 @@
     }
     .next-block .nl   { font-size:1.6rem;color:var(--text-300);font-weight:600; }
     .next-block .nt   { font-family:var(--font-display);font-size:7rem;font-weight:900;
-                        color:var(--text-100);text-shadow:0 0 30px rgba(0,229,255,.4);letter-spacing:8px; }
+                        color:var(--text-100);text-shadow:0 0 30px rgba(240,180,41,.4);letter-spacing:8px; }
     .next-block .nr   { font-size:1.8rem;color:var(--text-300); }
 
     /* Thank you card */
@@ -94,7 +106,7 @@
     /* Transition overlay (subtle flash when status changes) */
     .transition-flash {
       position:fixed;inset:0;z-index:20;pointer-events:none;
-      background:rgba(0,229,255,.08);opacity:0;transition:opacity .3s;
+      background:rgba(240,180,41,.08);opacity:0;transition:opacity .3s;
     }
     .transition-flash.active { opacity:1; }
   </style>
@@ -284,12 +296,7 @@ function renderScreenUI(st) {
     mid.innerHTML = `
       ${header}
       <div class="screen-status-icon">🟢</div>
-      <div class="screen-status-pill status-boarding">הכנסו!</div>
-      <div class="boarding-countdown">
-        <div class="label">הפעילות מתחילה בעוד</div>
-        <div class="num" id="sc-countdown">--</div>
-        <div class="suf">שניות</div>
-      </div>`;
+      <div class="screen-status-pill status-boarding">הכנסו!</div>`;
 
   } else if (st === 'running') {
     // Video ended or no video — show in-progress placeholder
@@ -314,6 +321,17 @@ function renderScreenUI(st) {
       ${header}
       <div class="screen-status-icon">🔴</div>
       <div class="screen-status-pill status-closed">המתחם סגור</div>`;
+
+  } else if (st === 'break') {
+    const secsLeft = station.breakEndTime ? Math.max(0, Math.round((station.breakEndTime - Date.now()) / 1000)) : 1800;
+    mid.innerHTML = `
+      ${header}
+      <div class="screen-status-icon">☕</div>
+      <div class="break-screen-block">
+        <div class="break-screen-label">נחזור בעוד</div>
+        <div class="break-screen-timer" id="sc-break-timer">${formatTimer(secsLeft)}</div>
+        <div class="break-screen-sub">דקות</div>
+      </div>`;
   }
 }
 
@@ -322,11 +340,11 @@ function tickScreen() {
   const st  = station.status || 'idle';
   const now = Date.now();
 
-  // Boarding countdown
-  if (st === 'boarding' && station.boardingEndTime) {
-    const secs = Math.max(0, Math.round((station.boardingEndTime - now)/1000));
-    const el   = document.getElementById('sc-countdown');
-    if (el) el.textContent = secs;
+  // Break countdown
+  if (st === 'break' && station.breakEndTime) {
+    const secs = Math.max(0, Math.round((station.breakEndTime - now)/1000));
+    const el = document.getElementById('sc-break-timer');
+    if (el) el.textContent = formatTimer(secs);
   }
 
   // Setup next session

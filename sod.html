@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>סוד הפיצה המנצחת | טכנושף</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:     #e53935;
+      --red-glow: rgba(229,57,53,.35);
+      --bg:      #03031a;
+      --text:    #f0f0ff;
+      --text-dim: rgba(240,240,255,.55);
+    }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Landing ── */
+    #landing {
+      height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 28px; text-align: center; padding: 32px 24px;
+      background: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(229,57,53,.18) 0%, transparent 68%);
+    }
+
+    .pizza-emoji { font-size: clamp(4rem, 14vw, 8rem); line-height: 1; animation: bounce 2.5s ease-in-out infinite; }
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-14px); }
+    }
+
+    .sod-title {
+      font-size: clamp(1.6rem, 5.5vw, 3.2rem);
+      font-weight: 900; color: var(--text); line-height: 1.1;
+    }
+    .sod-sub {
+      font-size: clamp(.85rem, 2.5vw, 1.3rem);
+      color: var(--text-dim); max-width: 420px; line-height: 1.6;
+    }
+
+    .play-btn {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--red); color: #fff;
+      border: none; border-radius: 100px;
+      padding: clamp(14px,3vw,20px) clamp(32px,6vw,52px);
+      font-size: clamp(1rem, 3vw, 1.4rem); font-weight: 800;
+      cursor: pointer; letter-spacing: .03em;
+      box-shadow: 0 0 32px var(--red-glow), 0 4px 24px rgba(0,0,0,.4);
+      transition: transform .15s, box-shadow .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .play-btn:hover  { transform: scale(1.04); box-shadow: 0 0 48px var(--red-glow), 0 6px 32px rgba(0,0,0,.5); }
+    .play-btn:active { transform: scale(.97); }
+
+    .play-arrow {
+      font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+      display: inline-block; transform: rotate(180deg);
+    }
+
+    /* ── Video view ── */
+    #videoview {
+      display: none; height: 100%; flex-direction: column;
+      background: #000;
+    }
+    #videoview.active { display: flex; }
+
+    /* Timer bar at top */
+    .vid-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: rgba(0,0,0,.85); flex-shrink: 0;
+      border-bottom: 1px solid rgba(229,57,53,.3);
+    }
+    .vid-title {
+      font-size: .85rem; font-weight: 700; color: var(--text-dim);
+    }
+    .vid-timer {
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem; font-weight: 900; color: var(--red);
+      letter-spacing: 3px; font-variant-numeric: tabular-nums;
+    }
+    .vid-restart-btn {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: var(--text-dim); font-size: .78rem; padding: 5px 12px;
+      border-radius: 100px; cursor: pointer;
+    }
+    .vid-restart-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+
+    #yt-frame {
+      flex: 1; border: none; display: block; width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Landing -->
+<div id="landing">
+  <div class="pizza-emoji">🍕</div>
+  <div class="sod-title">סוד הפיצה המנצחת</div>
+  <div class="sod-sub">לחץ כדי לצפות בסרטון ולהתחיל את הפעילות</div>
+  <button class="play-btn" onclick="startVideo()">
+    התחל פעילות <span class="play-arrow">▶</span>
+  </button>
+</div>
+
+<!-- Video -->
+<div id="videoview">
+  <div class="vid-topbar">
+    <div class="vid-title">🍕 סוד הפיצה המנצחת</div>
+    <div class="vid-timer" id="vid-timer">00:00</div>
+    <button class="vid-restart-btn" onclick="restartVideo()">↺ התחל מחדש</button>
+  </div>
+  <iframe id="yt-frame"
+    allow="autoplay; fullscreen; accelerometer; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+<script>
+let timerEl  = null;
+let seconds  = 0;
+let timerInt = null;
+
+function startVideo() {
+  document.getElementById('landing').style.display   = 'none';
+  document.getElementById('videoview').classList.add('active');
+
+  // Load YouTube with autoplay
+  document.getElementById('yt-frame').src =
+    'https://www.youtube.com/embed/WvGLMvIr3kU?autoplay=1&rel=0&modestbranding=1';
+
+  // Start elapsed timer
+  timerEl  = document.getElementById('vid-timer');
+  seconds  = 0;
+  clearInterval(timerInt);
+  timerInt = setInterval(tickTimer, 1000);
+}
+
+function restartVideo() {
+  document.getElementById('yt-frame').src =
+    'https://www.youtube.com/embed/WvGLMvIr3kU?autoplay=1&rel=0&modestbranding=1';
+  seconds = 0;
+}
+
+function tickTimer() {
+  seconds++;
+  const m = String(Math.floor(seconds / 60)).padStart(2,'0');
+  const s = String(seconds % 60).padStart(2,'0');
+  if (timerEl) timerEl.textContent = m + ':' + s;
+}
+</script>
+</body>
+</html>

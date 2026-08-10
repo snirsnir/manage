@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>לוח מרכזי | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
+  <style>
+    * { cursor: none; }
+    body { background: var(--bg-0); }
+    html, body { min-height: 100dvh; }
+
+    /* ── Full-screen flex layout ── */
+    .board-layout {
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      padding: 14px 32px 8px;
+      gap: 8px;
+    }
+
+    /* Header */
+    .board-header { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .board-brand  { display:flex; align-items:center; gap:14px; }
+    .board-logo   { height:40px; filter:drop-shadow(0 0 14px rgba(240,180,41,.4)); }
+    .board-title  { font-size:1.55rem; font-weight:900;
+      background:linear-gradient(135deg,var(--cyan),var(--violet-light));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .board-subtitle { font-size:.75rem; color:var(--text-400); }
+    .board-clock  { font-family:var(--font-display); font-size:2.2rem; font-weight:700;
+                    color:var(--cyan); text-shadow:0 0 14px rgba(240,180,41,.4); letter-spacing:3px; }
+
+    /* Divider */
+    .board-divider {
+      height:2px; flex-shrink:0;
+      background:linear-gradient(90deg,transparent,var(--cyan),var(--violet-light),transparent);
+    }
+
+    /* Column headers */
+    .board-col-headers {
+      display:grid; flex-shrink:0;
+      font-size:.95rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+      color:var(--text-300); padding:4px 6px;
+    }
+
+    /* ── Rows container: flex column, rows expand to fill ── */
+    .board-rows {
+      flex: 1; display: flex; flex-direction: column; gap: 4px;
+    }
+
+    /* Section headers inside rows: compact, don't grow */
+    .board-rows > .floor-section-header {
+      flex: 0 0 auto;
+      margin: 4px 0 2px; padding: 5px 14px 5px 10px;
+      font-size: 1rem; font-weight: 800;
+      border-radius: 0 6px 6px 0;
+      text-shadow: none;
+    }
+    .board-rows > .floor-section-header:first-child { margin-top: 0; }
+
+    /* Each row: grows to fill remaining space */
+    .board-row {
+      flex: 1; min-height: 0;
+      display: grid; align-items: center;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-md); padding: 0 16px 0 20px;
+      transition: border-color .3s, background .3s;
+      position: relative; overflow: hidden;
+    }
+    /* All direct children in grid: prevent overflow */
+    .board-row > div { min-width: 0; overflow: hidden; }
+
+    .board-row::before {
+      content:''; position:absolute; top:0; right:0; bottom:0; width:4px;
+      border-radius:0 var(--r-md) var(--r-md) 0; transition:background .4s;
+    }
+    .board-row.status-idle::before     { background:var(--idle); }
+    .board-row.status-boarding::before { background:var(--boarding); box-shadow:0 0 8px var(--boarding); }
+    .board-row.status-running::before  { background:var(--running);  box-shadow:0 0 8px var(--running);  }
+    .board-row.status-setup::before    { background:var(--setup);    box-shadow:0 0 8px var(--setup);    }
+    .board-row.status-closed::before   { background:var(--closed);   }
+    .board-row.status-break::before    { background:var(--break);    }
+
+    .board-row.status-boarding { border-color:rgba(0,230,118,.3); background:rgba(0,230,118,.05); }
+    .board-row.status-running  { border-color:rgba(33,150,243,.3); }
+
+    .row-name  { font-size:1.25rem; font-weight:800; color:var(--text-100);
+                 white-space:nowrap; text-overflow:ellipsis; }
+    .row-topic { font-size:1.15rem; font-weight:700;
+                 white-space:nowrap; text-overflow:ellipsis; }
+    .row-time  { font-family:var(--font-display); font-size:1.45rem; font-weight:700; }
+    .row-next  { font-size:.92rem; color:var(--text-300); }
+    .row-next strong { color:var(--text-100); }
+
+    .next-soon { color:var(--boarding) !important; font-weight:700; animation:blink 1.5s step-start infinite; }
+
+    /* Footer */
+    .board-footer {
+      flex-shrink:0; display:flex; justify-content:space-between; align-items:center;
+      color:var(--text-400); font-size:.7rem; padding-top:2px;
+    }
+
+    .board-empty { flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-400); font-size:1.4rem; }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      * { cursor: auto; }
+      body { overflow-y: auto; }
+      html, body { height: auto; }
+      .board-layout { height: auto; min-height: 100dvh; padding: 12px 16px 16px; gap: 8px; }
+      .board-rows { overflow: visible; flex: none; display: flex; flex-direction: column; gap: 6px; }
+      .board-rows > .board-row { flex: none; padding: 10px 14px; min-height: 52px; }
+      .board-clock { font-size: 1.5rem; letter-spacing: 1px; }
+      .board-logo  { height: 32px; }
+      .board-title { font-size: 1.1rem; }
+      .board-col-headers { display: none; }
+      /* 3 columns on mobile: name | status | timer */
+      .board-rows .board-row { grid-template-columns: 1fr auto auto !important; }
+      .board-rows .board-row > div:nth-child(2) { display: none; }
+      .board-rows .board-row > div:nth-child(5) { display: none; }
+      .row-name  { font-size: .9rem; }
+      .row-time  { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="nav-sentinel" id="nav-sentinel"></div>
+<div class="board-swatch-bar navbar--autohide" id="auto-navbar">
+  <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="מצב אור">☀️</button>
+  <span style="font-size:.75rem;color:var(--text-400);font-weight:700;margin-right:4px;">ערכת נושא:</span>
+  <div class="accent-swatches">
+    <div class="accent-swatch active" data-accent="cyan"   style="background:#F0B429" onclick="setAccent('cyan')"   title="זהב"></div>
+    <div class="accent-swatch"        data-accent="red"    style="background:#f44336" onclick="setAccent('red')"    title="אדום"></div>
+    <div class="accent-swatch"        data-accent="green"  style="background:#00e676" onclick="setAccent('green')"  title="ירוק"></div>
+    <div class="accent-swatch"        data-accent="orange" style="background:#ff9800" onclick="setAccent('orange')" title="כתום"></div>
+    <div class="accent-swatch"        data-accent="purple" style="background:#7c4dff" onclick="setAccent('purple')" title="סגול"></div>
+    <div class="accent-swatch"        data-accent="pink"   style="background:#f06292" onclick="setAccent('pink')"   title="ורוד"></div>
+  </div>
+</div>
+<div class="page-content">
+<div class="board-layout">
+
+  <!-- Header -->
+  <div class="board-header">
+    <div class="board-brand">
+      <img src="logo.png" class="board-logo" alt="טכנודע">
+      <div>
+        <div class="board-title">טכנושף</div>
+        <div class="board-subtitle">לוח פעילויות — כל הנושאים</div>
+      </div>
+    </div>
+    <div id="board-clock" class="board-clock">--:--:--</div>
+  </div>
+
+  <div class="board-divider"></div>
+
+  <!-- Column headers -->
+  <div class="board-col-headers" id="col-headers" style="grid-template-columns:2fr 3fr 1.2fr 1.5fr 2fr;padding-right:22px;">
+    <span>מתחם</span>
+    <span>נושא</span>
+    <span>מצב</span>
+    <span>טיימר</span>
+    <span>סבב הבא</span>
+  </div>
+
+  <!-- Rows -->
+  <div class="board-rows" id="board-rows">
+    <div class="loading"><div class="spinner"></div><span style="color:var(--text-300)">טוען...</span></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="board-footer">
+    <span>מצב מסך ✓ עדכון בזמן אמת</span>
+    <span id="board-offline" style="color:var(--closed);display:none;">⚠️ ללא חיבור</span>
+    <span>טכנודע © כל הזכויות שמורות</span>
+  </div>
+
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/theme.js"></script>
+<script>
+let stations   = {};
+let timerInt   = null;
+
+// Clock
+setInterval(() => {
+  document.getElementById('board-clock').textContent =
+    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}, 1000);
+
+// Offline
+window.addEventListener('offline', () => document.getElementById('board-offline').style.display = 'block');
+window.addEventListener('online',  () => document.getElementById('board-offline').style.display = 'none');
+
+// Firebase
+stationsRef().on('value', snap => {
+  stations = {};
+  snap.forEach(c => { const v = c.val(); if (v.enabled !== false) stations[v.id] = v; });
+  renderBoard();
+  clearInterval(timerInt);
+  timerInt = setInterval(tickBoard, 1000);
+});
+
+function getSortedStations() {
+  return Object.values(stations).sort((a, b) => {
+    // Sort: active first (boarding > running > setup > idle > closed), then by next session time
+    const priority = { boarding:0, running:1, setup:2, idle:3, break:4, closed:5 };
+    const pa = priority[a.status||'idle'] ?? 3;
+    const pb = priority[b.status||'idle'] ?? 3;
+    if (pa !== pb) return pa - pb;
+    const na = a.nextSessionTime || 9e15;
+    const nb = b.nextSessionTime || 9e15;
+    return na - nb;
+  });
+}
+
+function groupByFloor(list) {
+  const order  = ['lower','upper'];
+  const labels = { lower:'🏠 קומה תחתונה', upper:'🔝 קומה עליונה' };
+  const map    = {};
+  list.forEach(s => { const f = s.floor||'upper'; if (!map[f]) map[f]=[]; map[f].push(s); });
+  return order.filter(f => map[f]&&map[f].length).map(f => ({ label: labels[f]||f, stations: map[f] }));
+}
+
+function renderBoard() {
+  const rows = document.getElementById('board-rows');
+  const list = getSortedStations();
+
+  if (!list.length) {
+    rows.innerHTML = '<div class="board-empty">אין מתחמים פעילים</div>';
+    return;
+  }
+
+  const groups = groupByFloor(list);
+  rows.innerHTML = groups.map(g =>
+    `<div class="floor-section-header">${g.label}</div>` +
+    g.stations.map(s => buildRow(s)).join('')
+  ).join('');
+}
+
+const TOPIC_COLORS = {
+  'קסם המטבח המולקולרי': '#7c4dff',
+  'בלשי המזון':           '#ff8f00',
+  'סוד הפיצה המנצחת':    '#e53935'
+};
+
+function buildRow(s) {
+  const st    = s.status || 'idle';
+  const color = TOPIC_COLORS[s.topic] || s.topicColor || 'var(--cyan)';
+
+  let timerHtml = '<span class="row-time" style="color:var(--text-400)">—</span>';
+  let nextHtml  = '<span class="row-next" style="color:var(--text-400)">—</span>';
+
+  const now = Date.now();
+
+  if (st === 'running' && s.sessionEndTime) {
+    const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
+    const color = secs < 180 ? 'var(--closed)' : secs < 300 ? 'var(--setup)' : 'var(--running)';
+    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:${color}">${formatTimer(secs)}</span>`;
+  } else if (st === 'setup' && s.setupEndTime) {
+    const secs = Math.max(0, Math.round((s.setupEndTime - now)/1000));
+    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--setup)">${formatTimer(secs)}</span>`;
+  } else if (st === 'break' && s.breakEndTime) {
+    const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
+    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--break)">${formatTimer(secs)}</span>`;
+  }
+
+  if (s.nextSessionTime) {
+    const minsUntil = Math.round((s.nextSessionTime - now)/60000);
+    const isSoon    = minsUntil <= 5 && minsUntil >= 0;
+    nextHtml = `<span class="row-next ${isSoon?'next-soon':''}" id="n-${s.id}">
+      <strong>${formatTime(s.nextSessionTime)}</strong>
+      <span style="font-size:.85rem;color:${isSoon?'var(--boarding)':'var(--text-400)'}">
+        ${formatTimeUntil(s.nextSessionTime)}
+      </span>
+    </span>`;
+  }
+
+  return `<div class="board-row status-${st}" id="row-${s.id}"
+    style="grid-template-columns:2fr 3fr 1.2fr 1.5fr 2fr;">
+    <div class="row-name">${s.name}</div>
+    <div class="row-topic" style="color:${color}">${s.topic||'—'}</div>
+    <div>${statusBadge(st)}</div>
+    <div>${timerHtml}</div>
+    <div>${nextHtml}</div>
+  </div>`;
+}
+
+function statusBadge(st) {
+  return `<span class="badge badge--${st}"><span class="badge-dot"></span>${STATUS[st].label}</span>`;
+}
+
+function tickBoard() {
+  const now  = Date.now();
+  const list = getSortedStations();
+
+  list.forEach(s => {
+    const st  = s.status || 'idle';
+    const tEl = document.getElementById(`t-${s.id}`);
+    const nEl = document.getElementById(`n-${s.id}`);
+
+    if (tEl) {
+      let secs = 0;
+      if (st === 'running'  && s.sessionEndTime)  secs = Math.max(0, Math.round((s.sessionEndTime  - now)/1000));
+      if (st === 'setup'    && s.setupEndTime)     secs = Math.max(0, Math.round((s.setupEndTime    - now)/1000));
+      if (st === 'break'    && s.breakEndTime)     secs = Math.max(0, Math.round((s.breakEndTime    - now)/1000));
+      tEl.textContent = formatTimer(secs);
+      if (st === 'running' && secs < 180) tEl.style.color = secs < 60 ? 'var(--closed)' : 'var(--setup)';
+    }
+
+    if (nEl && s.nextSessionTime) {
+      const minsUntil = Math.round((s.nextSessionTime - now)/60000);
+      const isSoon    = minsUntil <= 5 && minsUntil >= 0;
+      nEl.innerHTML = `
+        <strong>${formatTime(s.nextSessionTime)}</strong>
+        <span style="font-size:.85rem;color:${isSoon?'var(--boarding)':'var(--text-400)'}">
+          ${formatTimeUntil(s.nextSessionTime)}
+        </span>`;
+      nEl.className = `row-next ${isSoon?'next-soon':''}`;
+    }
+  });
+}
+</script>
+</body>
+</html>

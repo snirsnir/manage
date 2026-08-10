@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>דאשבורד | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
+  <style>
+    .dashboard-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px; padding: 28px 0 20px;
+    }
+    .dashboard-title { font-size: 1.5rem; font-weight: 800; }
+    .live-clock {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.55rem; font-weight: 700; letter-spacing: .1em;
+      color: var(--cyan); text-shadow: 0 0 16px rgba(240,180,41,.45);
+      font-variant-numeric: tabular-nums;
+      direction: ltr; unicode-bidi: embed; white-space: nowrap;
+      display: block; text-align: center;
+      background: linear-gradient(135deg, rgba(240,180,41,.1) 0%, rgba(240,180,41,.04) 100%);
+      border: 1px solid rgba(240,180,41,.3);
+      border-radius: 10px; padding: 8px 14px;
+      box-shadow: 0 0 18px rgba(240,180,41,.08), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .summary-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-md); padding: 10px 18px;
+      font-size: .875rem; font-weight: 600;
+      cursor: pointer; user-select: none; transition: border-color .15s, background .15s;
+    }
+    .summary-chip:hover { border-color: var(--glass-border-hover); }
+    .summary-chip.filter-active {
+      border-color: var(--cyan); background: rgba(240,180,41,.1);
+      box-shadow: 0 0 10px rgba(240,180,41,.15);
+    }
+    .summary-chip .count { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; }
+
+    /* View toggle */
+    .view-toggle { display: flex; gap: 4px; }
+    .view-btn {
+      padding: 7px 16px; border-radius: var(--r-sm); font-size: .82rem; font-weight: 700;
+      background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-300);
+      cursor: pointer; transition: .15s;
+    }
+    .view-btn.active { background: rgba(240,180,41,.12); border-color: var(--cyan); color: var(--cyan); }
+    .view-btn:hover:not(.active) { color: var(--text-100); border-color: var(--glass-border-hover); }
+
+    /* Station cards — floor-plan layout */
+    .stations-grid { display: flex; flex-direction: column; gap: 24px; }
+    .floor-plan {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .floor-plan--list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .floor-plan .dash-card { height: 100%; }
+
+    /* ── Table view ── */
+    .tbl-cols { grid-template-columns: 1.4fr 1.6fr 1fr 0.8fr 2.2fr 1.5fr 1.1fr; }
+    .tbl-col-headers {
+      display: grid; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--text-400); padding: 0 10px 0 6px;
+    }
+    .tbl-row {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-md); position: relative; overflow: hidden;
+      transition: border-color .25s;
+    }
+    .tbl-row-info {
+      display: grid; align-items: center; padding: 10px 10px 10px 8px; gap: 6px;
+    }
+    .tbl-row-info > div { min-width: 0; overflow: hidden; }
+    .tbl-row::before {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 4px;
+    }
+    .tbl-row.status-idle::before     { background: var(--idle); }
+    .tbl-row.status-boarding::before { background: var(--boarding); box-shadow: 0 0 8px var(--boarding); }
+    .tbl-row.status-running::before  { background: var(--running);  box-shadow: 0 0 8px var(--running); }
+    .tbl-row.status-setup::before    { background: var(--setup);    box-shadow: 0 0 8px var(--setup); }
+    .tbl-row.status-closed::before   { background: var(--closed); }
+    .tbl-row.status-break::before    { background: var(--break); }
+    .tbl-row.status-boarding { border-color: rgba(0,230,118,.3); background: rgba(0,230,118,.04); }
+    .tbl-name  { font-size: 1rem; font-weight: 800; color: var(--text-100); white-space: nowrap; text-overflow: ellipsis; }
+    .tbl-topic { font-size: .9rem; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+    .tbl-timer { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .tbl-next  { font-size: .82rem; color: var(--text-300); }
+    .tbl-next strong { color: var(--text-100); }
+    .tbl-rows  { display: flex; flex-direction: column; gap: 5px; }
+    .tbl-section { display: flex; flex-direction: column; gap: 8px; }
+
+    .dash-card {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg); overflow: hidden;
+      transition: border-color .25s, transform .2s;
+      position: relative;
+    }
+    .dash-card:hover { border-color: var(--glass-border-hover); transform: translateY(-2px); }
+
+    .dash-card__top {
+      padding: 18px 18px 14px;
+    }
+    .dash-card__header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+    .dash-card__name   { font-size: 1.05rem; font-weight: 800; color: var(--text-100); }
+    .dash-card__topic  { font-size: .95rem; font-weight: 600; margin-top:2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .dash-card__timer-row { display:flex; align-items:baseline; gap:10px; margin:8px 0; }
+    .dash-card__timer     { font-family:var(--font-display); font-size:2rem; font-weight:700; font-variant-numeric:tabular-nums; min-width:4.5ch; display:inline-block; }
+    .dash-card__timer-label { font-size:.75rem; color:var(--text-400); }
+
+    .dash-card__next    { font-size:.8rem; color:var(--text-300); margin-bottom:10px; }
+    .dash-card__next strong { color:var(--text-100); }
+
+    .dash-card__delay {
+      font-size: .72rem; padding: 2px 10px; border-radius: 100px;
+      background: rgba(244,67,54,.12); color: var(--closed); border: 1px solid rgba(244,67,54,.25);
+      display: inline-block; margin-bottom: 8px;
+    }
+    .dash-card__delay.ok { background:rgba(0,230,118,.1);color:var(--boarding);border-color:rgba(0,230,118,.25); }
+
+    .dash-card__progress { margin-bottom:0; }
+
+    .dash-card__actions {
+      background: rgba(0,0,0,.18); border-top: 1px solid var(--glass-border);
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+      overflow: visible;
+    }
+    [data-theme="light"] .dash-card__actions {
+      background: rgba(20,30,80,.05); border-top-color: rgba(20,30,80,.1);
+    }
+    .dash-card__actions .btn { font-size: .72rem; padding: 5px 8px; border-radius: var(--r-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions-row { display: flex; gap: 5px; }
+    .actions-row--status .btn { flex: 1; min-width: 0; font-size: .68rem; }
+    .btn--reduce {
+      background: rgba(244, 67, 54, 0.1); color: #ff8a80;
+      border: 1px solid rgba(244, 67, 54, 0.25);
+    }
+    .btn--reduce:hover:not(:disabled) {
+      background: rgba(244, 67, 54, 0.2); border-color: rgba(244, 67, 54, 0.5);
+      transform: translateY(-1px);
+    }
+
+
+    /* Status colors */
+    .color-idle     { color: var(--idle);     }
+    .color-boarding { color: var(--boarding); }
+    .color-running  { color: var(--running);  }
+    .color-setup    { color: var(--setup);    }
+    .color-closed   { color: var(--closed);   }
+
+    /* Top highlight bar per status */
+    .dash-card.status-idle::before     { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--idle); }
+    .dash-card.status-boarding::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--boarding);box-shadow:0 0 10px var(--boarding); }
+    .dash-card.status-running::before  { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--running); box-shadow:0 0 10px var(--running);  }
+    .dash-card.status-setup::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--setup);   box-shadow:0 0 10px var(--setup);    }
+    .dash-card.status-closed::before   { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--closed);  box-shadow:0 0 10px var(--closed);   }
+    .dash-card.status-break::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--break);   box-shadow:0 0 10px var(--break);    }
+    .color-break { color: var(--break); }
+
+    /* ── Dashboard chat sidebar ── */
+    @keyframes dash-dot-ping {
+      0%        { transform: scale(1);   opacity: .85; }
+      70%, 100% { transform: scale(3.2); opacity: 0; }
+    }
+    @keyframes dash-small-ping {
+      0%        { transform: scale(1);   opacity: .85; }
+      70%, 100% { transform: scale(2.5); opacity: 0; }
+    }
+    .dash-chat-tab {
+      position: fixed; right: 0; top: 62%; transform: translateY(-50%);
+      z-index: 950;
+      background: rgba(33,150,243,.88);
+      border-radius: 10px 0 0 10px;
+      padding: 14px 9px 14px 11px; cursor: pointer;
+      box-shadow: -3px 2px 16px rgba(0,0,0,.4);
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      border: 1px solid rgba(100,181,246,.4); border-right: none;
+      transition: background .15s;
+    }
+    .dash-chat-tab:hover { background: rgba(21,101,192,.95); }
+    .dash-chat-tab .tab-icon  { font-size: 1.1rem; }
+    .dash-chat-tab .tab-label {
+      writing-mode: vertical-rl; transform: rotate(180deg);
+      font-size: .67rem; font-weight: 700; color: #fff;
+      letter-spacing: .06em; white-space: nowrap;
+    }
+    .dash-chat-dot {
+      display: none; position: absolute; top: 3px; left: 4px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #f44336;
+      box-shadow: 0 0 8px 2px rgba(244,67,54,.7);
+    }
+    .dash-chat-dot::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: #f44336;
+      animation: dash-dot-ping 1.1s cubic-bezier(0,0,.2,1) infinite;
+    }
+    .dash-chat-dot.on { display: block; }
+
+    .dash-chat-panel {
+      position: fixed; right: 0; top: 0; bottom: 0; z-index: 1010;
+      width: 320px; max-width: 100vw;
+      background: #0e0e28;
+      border-left: 1px solid rgba(255,255,255,.09);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform .35s cubic-bezier(.16,1,.3,1);
+      box-shadow: -10px 0 40px rgba(0,0,0,.6);
+    }
+    .dash-chat-panel.open { transform: translateX(0); }
+    [data-theme="light"] .dash-chat-panel { background: #f4f4f8; border-left-color: rgba(0,0,0,.12); }
+
+    .dash-chat-head {
+      padding: 13px 14px 10px; flex-shrink: 0;
+      background: rgba(33,150,243,.11); border-bottom: 1px solid rgba(33,150,243,.18);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .dash-chat-head-row { display: flex; align-items: center; justify-content: space-between; }
+    .dash-chat-head-title { font-size: .88rem; font-weight: 700; color: #64b5f6; }
+    [data-theme="light"] .dash-chat-head-title { color: #1565c0; }
+    .dash-chat-head-close {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,.08); border: none; color: #aaa;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .8rem;
+    }
+    /* Station collapsible picker */
+    .dash-station-picker { display: flex; flex-direction: column; gap: 4px; }
+    .dash-station-picker-hdr {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
+      cursor: pointer; text-align: right; font-size: .84rem;
+      color: var(--text-200); transition: background .12s;
+    }
+    .dash-station-picker-hdr:hover { background: rgba(255,255,255,.1); }
+    .dash-picker-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dash-picker-arrow { font-size: .65rem; transition: transform .22s ease; flex-shrink: 0; }
+    .dash-station-picker.open .dash-picker-arrow { transform: rotate(180deg); }
+    [data-theme="light"] .dash-station-picker-hdr { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.13); color: #333; }
+    [data-theme="light"] .dash-station-picker-hdr:hover { background: rgba(0,0,0,.09); }
+    .dash-station-list-wrap { overflow: hidden; max-height: 0; transition: max-height .35s ease, opacity .25s ease; opacity: 0; }
+    .dash-station-picker.open .dash-station-list-wrap { max-height: 800px; opacity: 1; }
+    .dash-station-list {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 4px 0;
+    }
+    .dash-station-list::-webkit-scrollbar { width: 3px; }
+    .dash-station-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+    .dash-station-btn {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 7px 10px; border-radius: 7px;
+      background: transparent; border: 1px solid transparent;
+      cursor: pointer; text-align: right; font-size: .82rem;
+      color: var(--text-300); transition: background .12s, border-color .12s;
+    }
+    .dash-station-btn:hover { background: rgba(255,255,255,.06); }
+    .dash-station-btn.active {
+      background: rgba(33,150,243,.14); border-color: rgba(33,150,243,.4); color: #90caf9; font-weight: 700;
+    }
+    [data-theme="light"] .dash-station-btn { color: #444; }
+    [data-theme="light"] .dash-station-btn.active { background: rgba(21,101,192,.1); color: #1565c0; }
+    [data-theme="light"] .dash-station-btn:hover { background: rgba(0,0,0,.06); }
+    .dash-station-btn-name  { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+    .dash-station-btn-instr { font-size: .7rem; color: var(--text-400); white-space: nowrap; }
+    .dash-station-unread {
+      width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
+      background: #f44336; display: none; position: relative;
+      box-shadow: 0 0 5px 1px rgba(244,67,54,.6);
+    }
+    .dash-station-unread::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: #f44336;
+      animation: dash-small-ping 1.1s cubic-bezier(0,0,.2,1) infinite;
+    }
+    .dash-station-unread.on { display: block; }
+
+    .dash-chat-msgs {
+      flex: 1; overflow-y: auto; padding: 10px;
+      display: flex; flex-direction: column; gap: 7px;
+      scroll-behavior: smooth;
+    }
+    .dash-chat-msgs::-webkit-scrollbar { width: 3px; }
+    .dash-chat-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+    .dash-chat-empty { text-align: center; color: var(--text-400); font-size: .82rem; padding: 40px 12px; line-height: 1.6; }
+
+    .dash-bbl { display: flex; flex-direction: column; gap: 2px; max-width: 85%; }
+    .dash-bbl.out { align-self: flex-end; align-items: flex-end; }
+    .dash-bbl.in  { align-self: flex-start; align-items: flex-start; }
+    .dash-bbl-txt {
+      padding: 8px 11px; font-size: .875rem; line-height: 1.45; word-break: break-word;
+    }
+    .dash-bbl.out .dash-bbl-txt {
+      background: rgba(0,137,123,.25); border: 1px solid rgba(0,137,123,.4); color: #e0f2f1;
+      border-radius: 12px 12px 4px 12px;
+    }
+    .dash-bbl.in  .dash-bbl-txt {
+      background: rgba(33,150,243,.2); border: 1px solid rgba(33,150,243,.35); color: #e8f4fd;
+      border-radius: 12px 12px 12px 4px;
+    }
+    [data-theme="light"] .dash-bbl.out .dash-bbl-txt { background: #e0f2f1; color: #004d40; border-color: #4db6ac; }
+    [data-theme="light"] .dash-bbl.in  .dash-bbl-txt { background: #e3f2fd; color: #0d47a1; border-color: #64b5f6; }
+    .dash-bbl-meta { font-size: .62rem; color: var(--text-400); padding: 0 3px; }
+
+    .dash-chat-foot {
+      padding: 8px 10px; flex-shrink: 0;
+      border-top: 1px solid rgba(255,255,255,.07);
+      display: flex; gap: 7px; align-items: center;
+    }
+    [data-theme="light"] .dash-chat-foot { border-top-color: rgba(0,0,0,.1); }
+    .dash-chat-inp { flex: 1; font-size: .88rem; margin: 0 !important; padding: 9px 11px !important; }
+    .dash-chat-send {
+      width: 37px; height: 37px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(33,150,243,.85); border: none; color: white;
+      cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+    }
+    .dash-chat-send:hover { background: #1565c0; }
+  </style>
+</head>
+<body>
+<div id="offline-banner">אין חיבור לאינטרנט</div>
+
+<nav class="navbar">
+  <div class="navbar__nav">
+    <a href="dashboard.html"  class="nav-link active">עמדת מנהל משמרת</a>
+    <a href="board.html"      class="nav-link">לוח סטטוס</a>
+    <a href="door.html"       class="nav-link">מסך קהל</a>
+    <a href="activities.html" class="nav-link">מסך מדריכים</a>
+    <a href="admin.html"      class="nav-link">ניהול פעילויות</a>
+  </div>
+  <div class="theme-controls">
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="מצב אור">☀️</button>
+    <div class="accent-swatches">
+      <div class="accent-swatch active" data-accent="cyan"   style="background:#F0B429" onclick="setAccent('cyan')"   title="זהב"></div>
+      <div class="accent-swatch"        data-accent="red"    style="background:#f44336" onclick="setAccent('red')"    title="אדום"></div>
+      <div class="accent-swatch"        data-accent="green"  style="background:#00e676" onclick="setAccent('green')"  title="ירוק"></div>
+      <div class="accent-swatch"        data-accent="orange" style="background:#ff9800" onclick="setAccent('orange')" title="כתום"></div>
+      <div class="accent-swatch"        data-accent="purple" style="background:#7c4dff" onclick="setAccent('purple')" title="סגול"></div>
+      <div class="accent-swatch"        data-accent="pink"   style="background:#f06292" onclick="setAccent('pink')"   title="ורוד"></div>
+    </div>
+  </div>
+  <a href="index.html" class="navbar__brand">
+    <img src="logo.png" alt="טכנודע" class="navbar__logo">
+    <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">מרכז שליטה</div></div>
+  </a>
+</nav>
+
+<div class="page-content">
+<div class="container--wide" style="padding:0 24px 60px;">
+
+  <div class="dashboard-header">
+    <div>
+      <h1 class="dashboard-title">🎛️ חדר בקרה</h1>
+      <p class="text-muted text-small">עדכון בזמן אמת · לחץ על מתחם לשליטה מרחוק</p>
+    </div>
+    <div class="view-toggle">
+      <button id="btn-list"      class="view-btn" onclick="setView('list')"      title="תצוגת כרטיסיות">☰ רשימה</button>
+      <button id="btn-floorplan" class="view-btn" onclick="setView('floorplan')" title="תצוגת מפה פיזית">🗺️ מפת הטכנודע</button>
+      <button id="btn-table"     class="view-btn" onclick="setView('table')"     title="תצוגת טבלה">📋 טבלה</button>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:110px;">
+      <div id="live-clock" class="live-clock">00:00:00</div>
+      <button onclick="endOfDay()" style="
+        padding:5px 10px; border-radius:var(--r-sm); font-size:.75rem; font-weight:700;
+        background:rgba(244,67,54,.12); border:1px solid rgba(244,67,54,.35); color:#ff5252;
+        cursor:pointer; transition:.15s; white-space:nowrap;
+      " onmouseover="this.style.background='rgba(244,67,54,.22)'" onmouseout="this.style.background='rgba(244,67,54,.12)'">
+        🔴 סיים יום
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary chips / filter toggles -->
+  <div class="summary-bar" id="summary-bar">
+    <div class="summary-chip" data-filter="running"  onclick="toggleFilter('running')" ><span class="count" id="cnt-running"  style="color:var(--running)">-</span> בפעילות</div>
+    <div class="summary-chip" data-filter="boarding" onclick="toggleFilter('boarding')"><span class="count" id="cnt-boarding" style="color:var(--boarding)">-</span> קליטת קהל</div>
+    <div class="summary-chip" data-filter="setup"    onclick="toggleFilter('setup')"   ><span class="count" id="cnt-setup"    style="color:var(--setup)">-</span> התארגנות</div>
+    <div class="summary-chip" data-filter="break"    onclick="toggleFilter('break')"   ><span class="count" id="cnt-break"    style="color:var(--break)">-</span> בהפסקה</div>
+    <div class="summary-chip" data-filter="closed"   onclick="toggleFilter('closed')"  ><span class="count" id="cnt-closed"   style="color:var(--closed)">-</span> סגורים</div>
+    <div class="summary-chip" data-filter="idle"     onclick="toggleFilter('idle')"    ><span class="count" id="cnt-idle"     style="color:var(--idle)">-</span> המתנה</div>
+  </div>
+
+  <div class="stations-grid" id="stations-grid">
+    <div class="loading"><div class="spinner"></div><span>טוען מתחמים...</span></div>
+  </div>
+</div>
+</div>
+
+</div>
+
+<!-- Dashboard chat tab -->
+<div class="dash-chat-tab" onclick="openDashChat()">
+  <span class="tab-icon">💬</span>
+  <span class="tab-label">צ'אט</span>
+  <div class="dash-chat-dot" id="dash-chat-dot"></div>
+</div>
+
+<!-- Dashboard chat panel -->
+<div id="dash-chat-panel" class="dash-chat-panel">
+  <div class="dash-chat-head">
+    <div class="dash-chat-head-row">
+      <span class="dash-chat-head-title">💬 צ'אט עם מדריכים</span>
+      <button class="dash-chat-head-close" onclick="closeDashChat()">✕</button>
+    </div>
+    <div class="dash-station-picker" id="dash-station-picker">
+      <button class="dash-station-picker-hdr" onclick="toggleStationPicker()">
+        <div class="dash-station-unread" id="dash-picker-unread"></div>
+        <span class="dash-picker-label" id="dash-picker-label">בחר מעבדה</span>
+        <span class="dash-picker-arrow">▼</span>
+      </button>
+      <div class="dash-station-list-wrap" id="dash-station-list-wrap">
+        <div class="dash-station-list" id="dash-station-list">
+          <div style="font-size:.75rem;color:var(--text-400);padding:6px 2px;">טוען מעבדות...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dash-chat-msgs" id="dash-chat-msgs">
+    <div class="dash-chat-empty">בחר מעבדה כדי לפתוח צ'אט</div>
+  </div>
+  <div class="dash-chat-foot">
+    <input class="form-input dash-chat-inp" id="dash-chat-inp" placeholder="כתוב הודעה..." maxlength="120"
+           onkeydown="if(event.key==='Enter')sendDashChatMsg()">
+    <button type="button" class="dash-chat-send" onclick="sendDashChatMsg()" style="transform:rotate(180deg)">➤</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/theme.js"></script>
+<script>
+initOfflineDetector();
+
+let stations = {};
+let timers   = {};
+let viewMode = localStorage.getItem('tcDashView') || 'list';
+
+let filterStatus = null;
+
+function toggleFilter(status) {
+  filterStatus = filterStatus === status ? null : status;
+  document.querySelectorAll('.summary-chip[data-filter]').forEach(el => {
+    el.classList.toggle('filter-active', el.dataset.filter === filterStatus);
+  });
+  renderGrid();
+}
+
+function stationMatchesFilter(s) {
+  if (!filterStatus) return true;
+  return (s.status || 'idle') === filterStatus;
+}
+
+const VIEW_MODES = ['floorplan', 'list', 'table'];
+
+function setView(mode) {
+  viewMode = mode;
+  localStorage.setItem('tcDashView', mode);
+  VIEW_MODES.forEach(m => document.getElementById(`btn-${m}`).classList.toggle('active', m === mode));
+  renderGrid();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  VIEW_MODES.forEach(m => document.getElementById(`btn-${m}`).classList.toggle('active', viewMode === m));
+});
+
+// Custom order for list + table views
+const LIST_ORDER = {
+  lower: ['medical-a', 'computers1', 'computers2', 'lab-elec', 'technology'],
+  upper: ['medical-b', 'lab1', 'lab2', 'lab3', 'lab4', 'lab5', 'lab6']
+};
+
+function sortedByListOrder(stations, floorKey) {
+  const order = LIST_ORDER[floorKey] || [];
+  const byId  = {};
+  stations.forEach(s => { byId[s.id] = s; });
+  const sorted = order.map(id => byId[id]).filter(Boolean);
+  // append any station not in the order list
+  stations.forEach(s => { if (!order.includes(s.id)) sorted.push(s); });
+  return sorted;
+}
+
+const TOPIC_COLORS_DASH = {
+  'קסם המטבח המולקולרי': '#7c4dff',
+  'בלשי המזון':           '#ff8f00',
+  'סוד הפיצה המנצחת':    '#e53935'
+};
+
+const FLOOR_PLAN = {
+  upper: {
+    label: '🔝 קומה עליונה',
+    stations: {
+      'lab3':      { col: 1, row: 1 },
+      'lab4':      { col: 2, row: 1 },
+      'lab5':      { col: 4, row: 1 },
+      'lab6':      { col: 5, row: 1 },
+      'lab2':      { col: 1, row: 2 },
+      'lab1':      { col: 1, row: 3 },
+      'medical-b': { col: 1, row: 4, extraStyle: 'margin-top:14px' },
+    }
+  },
+  lower: {
+    label: '🏠 קומה תחתונה',
+    stations: {
+      'computers1': { col: 1, row: 1 },
+      'computers2': { col: 2, row: 1 },
+      'lab-elec':   { col: 4, row: 1 },
+      'technology': { col: 5, row: 1 },
+      'medical-a':  { col: 1, row: 2, extraStyle: 'margin-top:14px' },
+    }
+  }
+};
+
+// ── Live clock ──
+function tickClock() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('live-clock').textContent = `${hh}:${mm}:${ss}`;
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ── Load stations ──
+let dashChatInitialized = false;
+stationsRef().on('value', snap => {
+  stations = {};
+  snap.forEach(c => { const v = c.val(); stations[v.id] = v; });
+  renderGrid();
+  updateSummary();
+  if (!dashChatInitialized) {
+    dashChatInitialized = true;
+    listenForInstructorReplies();
+  }
+  // Refresh station list if panel is open
+  if (document.getElementById('dash-chat-panel').classList.contains('open')) {
+    populateDashStationList();
+  }
+});
+
+function updateSummary() {
+  const counts = { idle:0, boarding:0, running:0, setup:0, closed:0, break:0 };
+  Object.values(stations).forEach(s => {
+    const st = s.status || 'idle';
+    if (counts[st] !== undefined) counts[st]++;
+    else counts.idle++;
+  });
+  Object.entries(counts).forEach(([k,v]) => {
+    const el = document.getElementById(`cnt-${k}`);
+    if (el) el.textContent = v;
+  });
+}
+
+function groupByFloor(list) {
+  const order = ['lower','upper'];
+  const labels = { lower:'🏠 קומה תחתונה', upper:'🔝 קומה עליונה' };
+  const map = {};
+  list.forEach(s => {
+    const f = s.floor || 'upper';
+    if (!map[f]) map[f] = [];
+    map[f].push(s);
+  });
+  return order.filter(f => map[f] && map[f].length)
+    .map(f => ({ key: f, label: labels[f] || f, stations: map[f] }));
+}
+
+function renderGrid() {
+  const grid         = document.getElementById('stations-grid');
+  const allList      = Object.values(stations).filter(s => s.enabled !== false);
+  const filteredList = allList.filter(stationMatchesFilter);
+
+  if (!allList.length) {
+    grid.innerHTML = '<div class="alert alert--info">אין מתחמים פעילים. <a href="admin.html">הוסף מתחם</a></div>';
+    return;
+  }
+  Object.values(timers).forEach(clearInterval);
+  timers = {};
+
+  if (viewMode === 'list') {
+    const sorted = filteredList.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    const groups = groupByFloor(sorted);
+    if (!groups.length) {
+      grid.innerHTML = '<div class="alert alert--info">אין מתחמים במצב זה.</div>';
+      return;
+    }
+    grid.innerHTML = groups.map(g =>
+      `<div class="floor-section-header">${g.label}</div>
+       <div class="floor-plan floor-plan--list">${
+         sortedByListOrder(g.stations, g.key).map(s => buildCardHTML(s)).join('')
+       }</div>`
+    ).join('');
+    filteredList.forEach(s => startCardTimer(s));
+
+  } else if (viewMode === 'table') {
+    const sorted = filteredList.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    const groups = groupByFloor(sorted);
+    if (!groups.length) {
+      grid.innerHTML = '<div class="alert alert--info">אין מתחמים במצב זה.</div>';
+      return;
+    }
+    grid.innerHTML = groups.map(g => {
+      const rows = sortedByListOrder(g.stations, g.key).map(buildTableRowHTML).join('');
+      return `<div class="floor-section-header">${g.label}</div>
+              <div class="tbl-section">
+                <div class="tbl-col-headers tbl-cols">
+                  <span>מתחם</span><span>נושא</span><span>מצב</span><span>טיימר</span><span>שנה סטטוס</span><span>הוסף/הורד זמן</span><span>פעולות</span>
+                </div>
+                <div class="tbl-rows">${rows}</div>
+              </div>`;
+    }).join('');
+    filteredList.forEach(s => startCardTimer(s));
+
+  } else {
+    // Floor plan: always show ALL stations; dim the ones that don't match the filter
+    const byId = {};
+    allList.forEach(s => { byId[s.id] = s; });
+    grid.innerHTML = ['upper', 'lower'].map(floorKey => {
+      const floor = FLOOR_PLAN[floorKey];
+      const cells = Object.entries(floor.stations).map(([id, pos]) => {
+        const s = byId[id];
+        if (!s) return '';
+        const matches   = stationMatchesFilter(s);
+        const baseStyle = `grid-column:${pos.col};grid-row:${pos.row}${pos.extraStyle ? ';' + pos.extraStyle : ''}`;
+        const dimStyle  = filterStatus && !matches ? ';opacity:0.14;filter:grayscale(1);pointer-events:none' : '';
+        return buildCardHTML(s, baseStyle + dimStyle);
+      }).join('');
+      return `<div class="floor-section-header">${floor.label}</div>
+              <div class="floor-plan">${cells}</div>`;
+    }).join('');
+    allList.forEach(s => startCardTimer(s));
+  }
+}
+
+function buildCardHTML(s, gridStyle = '') {
+  const st = s.status || 'idle';
+  const statusMeta = STATUS[st];
+  const topicColor = TOPIC_COLORS_DASH[s.topic] || s.topicColor || 'var(--cyan)';
+
+
+  return `<div class="dash-card status-${st}" id="card-${s.id}"${gridStyle ? ` style="${gridStyle}"` : ''}>
+    <div class="dash-card__top">
+      <div class="dash-card__header">
+        <div>
+          <div class="dash-card__name">${s.name}</div>
+          <div class="dash-card__topic" style="color:${topicColor}">${s.topic||''}</div>
+          <div style="font-size:.72rem;color:var(--text-400);margin-top:3px;min-height:1.3em;">${s.instructorName ? `👤 ${s.instructorName}` : ''}</div>
+        </div>
+        <span class="badge badge--${st}"><span class="badge-dot"></span>${statusMeta.label}</span>
+      </div>
+
+      <div class="dash-card__timer-row">
+        <span class="dash-card__timer color-${st}" id="timer-${s.id}">--:--</span>
+        <span class="dash-card__timer-label" id="timer-label-${s.id}"></span>
+      </div>
+
+      <div class="dash-card__progress">
+        <div class="progress"><div class="progress__fill progress__fill--${st}" id="prog-${s.id}" style="width:0%"></div></div>
+      </div>
+
+      <div class="dash-card__next mt-8" id="next-${s.id}"></div>
+      <div id="delay-${s.id}"></div>
+    </div>
+
+
+    <div class="dash-card__actions">
+      <div style="font-size:.63rem;color:var(--text-400);font-weight:600;padding:0 2px 3px;letter-spacing:.04em;">שנה סטטוס</div>
+      <div class="actions-row actions-row--status">
+        <button class="btn btn--success" onclick="managerTransition('${s.id}','running')"  title="בפעילות">🟢 פעילות</button>
+        <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"    title="הכנה לפעילות חדשה">🟡 הכנה</button>
+        <button class="btn btn--primary" onclick="managerTransition('${s.id}','boarding')" title="קליטת קהל">🔵 קליטה</button>
+      </div>
+      <div class="actions-row" style="justify-content:space-between;align-items:center;">
+        <span style="font-size:.63rem;color:var(--text-400);font-weight:600;white-space:nowrap;padding-right:2px;">הוסף/הורד זמן</span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn--reduce btn--sm" onclick="addTime('${s.id}', -2)" title="-2 דקות">2-</button>
+          <button class="btn btn--reduce btn--sm" onclick="addTime('${s.id}', -5)" title="-5 דקות">5-</button>
+          <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 2)"  title="+2 דקות">2+</button>
+          <button class="btn btn--extend btn--sm" onclick="addTime('${s.id}', 5)"  title="+5 דקות">5+</button>
+        </div>
+      </div>
+      <div class="actions-row" style="flex-wrap:wrap;">
+        <button class="btn btn--ghost btn--sm" style="flex:1;min-width:fit-content;${st==='break' ? 'background:rgba(255,152,0,.22);border-color:rgba(255,152,0,.55);color:var(--break);box-shadow:0 0 8px rgba(255,152,0,.2);' : 'color:var(--text-300);'}"
+          onclick="${st==='break' ? `managerTransition('${s.id}','idle')` : `stationBreak('${s.id}')`}"
+          title="${st==='break' ? 'לחץ לכיבוי הפסקה' : 'יצאנו להפסקה'}">☕ הפסקה</button>
+        <button class="btn btn--ghost btn--sm" style="flex:1;min-width:fit-content;${st==='closed' ? 'background:rgba(244,67,54,.22);border-color:rgba(244,67,54,.55);color:var(--closed);box-shadow:0 0 8px rgba(244,67,54,.2);' : 'color:var(--closed);border-color:rgba(244,67,54,.3);'}"
+          onclick="managerTransition('${s.id}', '${st==='closed' ? 'idle' : 'closed'}')"
+          title="${st==='closed' ? 'לחץ לפתיחה מחדש' : 'סגור / תקלה'}">🚫 סגור</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildTableRowHTML(s) {
+  const st         = s.status || 'idle';
+  const topicColor = TOPIC_COLORS_DASH[s.topic] || s.topicColor || 'var(--cyan)';
+  const btnSm      = 'font-size:.68rem;padding:4px 7px;border-radius:var(--r-sm);min-width:0;';
+  return `<div class="tbl-row status-${st}" id="tbl-row-${s.id}">
+    <div class="tbl-row-info tbl-cols">
+      <div class="tbl-name">${s.name}${s.instructorName ? `<div style="font-size:.68rem;font-weight:600;color:var(--text-400);margin-top:1px;">👤 ${s.instructorName}</div>` : ''}</div>
+      <div class="tbl-topic" style="color:${topicColor}">${s.topic || '—'}</div>
+      <div><span class="badge badge--${st}"><span class="badge-dot"></span>${STATUS[st].label}</span></div>
+      <div class="tbl-timer color-${st}" id="tbl-timer-${s.id}">--:--</div>
+      <div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
+        <button class="btn btn--success" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🟢 פעילות</button>
+        <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 הכנה</button>
+        <button class="btn btn--primary" style="${btnSm}" onclick="managerTransition('${s.id}','boarding')">🔵 קליטה</button>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button class="btn btn--reduce" style="${btnSm}" onclick="addTime('${s.id}',-2)">2-</button>
+        <button class="btn btn--reduce" style="${btnSm}" onclick="addTime('${s.id}',-5)">5-</button>
+        <button class="btn btn--extend" style="${btnSm}" onclick="addTime('${s.id}',2)">2+</button>
+        <button class="btn btn--extend" style="${btnSm}" onclick="addTime('${s.id}',5)">5+</button>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button class="btn btn--ghost" style="${btnSm};${st==='break'?'background:rgba(255,152,0,.22);border-color:rgba(255,152,0,.55);color:var(--break);':'color:var(--text-300);'}"
+          onclick="${st==='break'?`managerTransition('${s.id}','idle')`:`stationBreak('${s.id}')`}">☕ הפסקה</button>
+        <button class="btn btn--ghost" style="${btnSm};${st==='closed'?'background:rgba(244,67,54,.22);border-color:rgba(244,67,54,.55);color:var(--closed);':'color:var(--closed);border-color:rgba(244,67,54,.3);'}"
+          onclick="managerTransition('${s.id}','${st==='closed'?'idle':'closed'}')">🚫 סגור</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tickTableRow(id) {
+  const s       = stations[id];
+  const timerEl = document.getElementById(`tbl-timer-${id}`);
+  const nextEl  = document.getElementById(`tbl-next-${id}`);
+  if (!timerEl || !s) return;
+
+  const st  = s.status || 'idle';
+  const now = Date.now();
+  let secs  = 0;
+
+  if (st === 'running' && s.sessionEndTime)
+    secs = Math.max(0, Math.round((s.sessionEndTime - now) / 1000));
+  else if (st === 'setup' && s.setupEndTime)
+    secs = Math.max(0, Math.round((s.setupEndTime - now) / 1000));
+  else if (st === 'break' && s.breakEndTime)
+    secs = Math.max(0, Math.round((s.breakEndTime - now) / 1000));
+
+  if (secs) {
+    timerEl.textContent = formatTimer(secs);
+    if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--closed)' : 'var(--running)';
+  } else {
+    timerEl.textContent = '--:--';
+  }
+
+  if (nextEl && s.nextSessionTime) {
+    const minsUntil = Math.round((s.nextSessionTime - now) / 60000);
+    const isSoon    = minsUntil >= 0 && minsUntil <= 5;
+    nextEl.innerHTML = `<strong>${formatTime(s.nextSessionTime)}</strong>
+      <span style="color:${isSoon ? 'var(--boarding)' : 'var(--text-400)'}"> ${formatTimeUntil(s.nextSessionTime)}</span>`;
+    nextEl.style.color = isSoon ? 'var(--boarding)' : '';
+  } else if (nextEl) {
+    nextEl.textContent = '—';
+  }
+}
+
+function startCardTimer(s) {
+  timers[s.id] = setInterval(() => { tickCard(s.id); tickTableRow(s.id); }, 1000);
+  tickCard(s.id);
+  tickTableRow(s.id);
+}
+
+function tickCard(id) {
+  const s = stations[id];
+  if (!s) return;
+  const st = s.status || 'idle';
+  const timerEl  = document.getElementById(`timer-${id}`);
+  const labelEl  = document.getElementById(`timer-label-${id}`);
+  const progEl   = document.getElementById(`prog-${id}`);
+  const nextEl   = document.getElementById(`next-${id}`);
+  const delayEl  = document.getElementById(`delay-${id}`);
+  if (!timerEl) return;
+
+  const now = Date.now();
+  let secs = 0, pct = 0;
+
+  if (st === 'running' && s.sessionEndTime) {
+    secs = Math.max(0, Math.round((s.sessionEndTime - now) / 1000));
+    const total = (s.activityDuration||25)*60;
+    const elapsed = total - secs;
+    pct = Math.min(100, Math.round(elapsed / total * 100));
+    labelEl.textContent = 'נותר';
+    if (nextEl) nextEl.innerHTML = s.nextSessionTime
+      ? `סבב הבא: <strong>${formatTime(s.nextSessionTime)}</strong> <span style="color:var(--text-400)">${formatTimeUntil(s.nextSessionTime)}</span>`
+      : '';
+    if (secs === 0) timerEl.className = 'dash-card__timer color-closed';
+    else timerEl.className = `dash-card__timer color-${st}`;
+
+  } else if (st === 'setup' && s.setupEndTime) {
+    secs = Math.max(0, Math.round((s.setupEndTime - now) / 1000));
+    const total = (s.setupDuration||7)*60;
+    pct = Math.min(100, Math.round((total - secs) / total * 100));
+    labelEl.textContent = 'להכנה';
+
+  } else if (st === 'break' && s.breakEndTime) {
+    secs = Math.max(0, Math.round((s.breakEndTime - now) / 1000));
+    const total = 30 * 60;
+    pct = Math.min(100, Math.round((total - secs) / total * 100));
+    labelEl.textContent = 'נחזור בעוד';
+    timerEl.className = 'dash-card__timer color-break';
+
+  } else {
+    timerEl.textContent = '--:--';
+    if (labelEl) labelEl.textContent = '';
+    if (nextEl) nextEl.innerHTML = '';
+    return;
+  }
+
+  timerEl.textContent = formatTimer(secs);
+  if (progEl) progEl.style.width = pct + '%';
+
+  // Delay indicator
+  if (delayEl && st === 'running' && s.sessionStartTime && s.scheduledStartTime) {
+    const delay = Math.round((s.sessionStartTime - s.scheduledStartTime) / 60000);
+    if (delay > 1) {
+      delayEl.innerHTML = `<span class="dash-card__delay">⏰ איחור: +${delay} דק'</span>`;
+    } else {
+      delayEl.innerHTML = `<span class="dash-card__delay ok">✓ בזמן</span>`;
+    }
+  } else if (delayEl) {
+    delayEl.innerHTML = '';
+  }
+}
+
+// ── Manager actions ──
+async function managerTransition(id, newStatus) {
+  const s = stations[id];
+  if (!s) return;
+  try {
+    await transitionStation(id, newStatus, s, { triggeredBy: 'manager' });
+    showToast(`${s.name}: ${STATUS[newStatus].label}`, 'success');
+  } catch(e) {
+    showToast('שגיאה', 'error');
+  }
+}
+
+async function addTime(id, mins) {
+  const s = stations[id];
+  if (!s || s.status !== 'running') { showToast('המתחם לא בפעילות', 'warning'); return; }
+  await extendSession(id, s, mins);
+  const label = mins > 0 ? `+${mins} דקות ל-${s.name}` : `${mins} דקות מ-${s.name}`;
+  showToast(label, mins > 0 ? 'success' : 'warning');
+}
+
+async function resetStationState(id) {
+  const s   = stations[id];
+  const name = s ? s.name : id;
+  if (!confirm(`לאפס את ${name} למצב המתנה?\nכל הטיימרים והמצב יאופסו, ההגדרות יישמרו.`)) return;
+  const now = Date.now();
+  try {
+    await stationRef(id).update({
+      status:               'idle',
+      sessionStartTime:     0, sessionEndTime:   0,
+      nextSessionTime:      0,
+      boardingStartTime:    0, boardingEndTime:  0,
+      setupStartTime:       0, setupEndTime:     0,
+      breakStartTime:       0, breakEndTime:     0,
+      extensions:           0, totalExtensionMinutes: 0,
+      managerMessage:       '',
+      instructorName:       '',
+      instructorReply:      '',
+      lastUpdated:          now
+    });
+    showToast(`${name}: אופס בהצלחה`, 'success');
+  } catch(e) {
+    showToast('שגיאה באיפוס: ' + e.message, 'error');
+  }
+}
+
+async function stationBreak(id) {
+  const s = stations[id];
+  if (!s) return;
+  const now = Date.now();
+  await stationRef(id).update({
+    status:         'break',
+    breakStartTime: now,
+    breakEndTime:   now + 30 * 60 * 1000,
+    managerMessage: '',
+    lastUpdated:    now
+  });
+  showToast(`${s.name}: יצאנו להפסקה (30 דק')`, 'warning');
+}
+
+
+// ── סיים יום ──
+async function endOfDay() {
+  const d       = new Date();
+  const dateKey     = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const dateDisplay = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  const list        = Object.values(stations);
+
+  if (!list.length) { showToast('אין מתחמים לאפס', 'warning'); return; }
+
+  const ok = confirm(
+    `לסיים את יום ${dateDisplay}?\n\n` +
+    `• הנתונים ישמרו ב-LOG\n` +
+    `• כל ${list.length} המתחמים יאופסו למצב המתנה\n` +
+    `• שמות המדריכים ימחקו`
+  );
+  if (!ok) return;
+
+  const now = Date.now();
+
+  // ── שמירת LOG ──
+  const logEntry = { savedAt: now, date: dateKey, stations: {} };
+  list.forEach(s => {
+    logEntry.stations[s.id] = {
+      name:                  s.name,
+      topic:                 s.topic || '',
+      instructorName:        s.instructorName || '',
+      status:                s.status || 'idle',
+      extensions:            s.extensions || 0,
+      totalExtensionMinutes: s.totalExtensionMinutes || 0
+    };
+  });
+
+  // ── איפוס כלל המתחמים בעדכון אחד ──
+  const resetFields = {
+    status: 'idle',
+    sessionStartTime: 0, sessionEndTime: 0, nextSessionTime: 0,
+    boardingStartTime: 0, boardingEndTime: 0,
+    setupStartTime: 0,   setupEndTime: 0,
+    breakStartTime: 0,   breakEndTime: 0,
+    extensions: 0, totalExtensionMinutes: 0,
+    managerMessage: '', instructorName: '', instructorReply: '', lastUpdated: now
+  };
+  const updates = {};
+  list.forEach(s => {
+    Object.entries(resetFields).forEach(([k, v]) => {
+      updates[`stations/${s.id}/${k}`] = v;
+    });
+  });
+
+  try {
+    await firebase.database().ref(`logs/${dateKey}`).set(logEntry);
+    await firebase.database().ref().update(updates);
+    showToast(`✓ יום ${dateKey} נשמר ב-LOG. כל המתחמים אופסו.`, 'success');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+// ── Dashboard chat ──
+let dashChatRef       = null;
+let dashChatStationId = null;
+const dashSeenKeys    = {};        // stationId → Set of seen msg keys
+const dashUnreadSet   = new Set(); // stations with unread messages
+
+function openDashChat() {
+  document.getElementById('dash-chat-panel').classList.add('open');
+  document.getElementById('dash-chat-dot').classList.remove('on');
+  populateDashStationList();
+  // Auto-select if exactly one unread station
+  if (dashUnreadSet.size === 1 && !dashChatStationId) {
+    const id = [...dashUnreadSet][0];
+    selectDashChatStation(id);
+  }
+}
+
+function closeDashChat() {
+  document.getElementById('dash-chat-panel').classList.remove('open');
+}
+
+function toggleStationPicker() {
+  document.getElementById('dash-station-picker').classList.toggle('open');
+}
+
+function updatePickerLabel(id) {
+  const s = id ? stations[id] : null;
+  const label = s
+    ? s.name + (s.instructorName ? ' — ' + s.instructorName : '')
+    : 'בחר מעבדה';
+  const el = document.getElementById('dash-picker-label');
+  if (el) el.textContent = label;
+  document.getElementById('dash-station-picker').classList.remove('open');
+}
+
+function populateDashStationList() {
+  const list   = document.getElementById('dash-station-list');
+  const sorted = Object.values(stations)
+    .filter(s => s.enabled !== false)
+    .sort((a,b) => (a.order||0)-(b.order||0));
+
+  list.innerHTML = '';
+  if (!sorted.length) {
+    list.innerHTML = '<div style="font-size:.75rem;color:var(--text-400);padding:6px 2px;">אין מעבדות</div>';
+    return;
+  }
+  sorted.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'dash-station-btn' + (s.id === dashChatStationId ? ' active' : '');
+    btn.dataset.id = s.id;
+    const hasUnread = dashUnreadSet.has(s.id);
+    btn.innerHTML = `
+      <div class="dash-station-unread${hasUnread ? ' on' : ''}"></div>
+      <span class="dash-station-btn-name">${s.name}</span>
+      ${s.instructorName ? `<span class="dash-station-btn-instr">👤 ${s.instructorName}</span>` : ''}`;
+    btn.onclick = () => selectDashChatStation(s.id);
+    list.appendChild(btn);
+  });
+}
+
+function selectDashChatStation(id) {
+  dashChatStationId = id || null;
+  if (dashChatRef) { dashChatRef.off(); dashChatRef = null; }
+
+  updatePickerLabel(id);
+
+  // Update button active states
+  document.querySelectorAll('.dash-station-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+
+  const msgs = document.getElementById('dash-chat-msgs');
+
+  if (!id) {
+    msgs.innerHTML = '<div class="dash-chat-empty">בחר מעבדה כדי לפתוח צ\'אט</div>';
+    return;
+  }
+
+  // Clear unread for this station
+  dashUnreadSet.delete(id);
+  const dotEl = document.querySelector(`.dash-station-btn[data-id="${id}"] .dash-station-unread`);
+  if (dotEl) dotEl.classList.remove('on');
+  const pickerDot = document.getElementById('dash-picker-unread');
+  if (pickerDot && !dashUnreadSet.size) pickerDot.classList.remove('on');
+  if (!dashUnreadSet.size) document.getElementById('dash-chat-dot').classList.remove('on');
+
+  msgs.innerHTML = '<div class="dash-chat-empty">טוען...</div>';
+
+  if (!dashSeenKeys[id]) dashSeenKeys[id] = new Set();
+  const subscribeTime = Date.now();
+
+  firebase.database().ref('chats/' + id + '/managerUnread').set(false).catch(()=>{});
+
+  dashChatRef = firebase.database().ref('chats/' + id + '/msgs');
+  dashChatRef.on('child_added', snap => {
+    try {
+      const key = snap.key;
+      const m   = snap.val();
+      dashSeenKeys[id].add(key);
+
+      const placeholder = msgs.querySelector('.dash-chat-empty');
+      if (placeholder) placeholder.remove();
+
+      const isOut = m.from === 'manager';
+      const bbl   = document.createElement('div');
+      bbl.className = 'dash-bbl ' + (isOut ? 'out' : 'in');
+      const d   = new Date(m.ts);
+      const hh  = String(d.getHours()).padStart(2,'0');
+      const mm2 = String(d.getMinutes()).padStart(2,'0');
+      bbl.innerHTML = `<div class="dash-bbl-txt">${escDashHtml(m.text)}</div>
+        <div class="dash-bbl-meta">${escDashHtml(m.name||'')}${m.name?' · ':''}${hh}:${mm2}</div>`;
+      msgs.appendChild(bbl);
+      msgs.scrollTop = msgs.scrollHeight;
+
+      if (m.from === 'instructor' && m.ts > subscribeTime) {
+        const panelOpen  = document.getElementById('dash-chat-panel').classList.contains('open');
+        const isSelected = dashChatStationId === id;
+        if (!panelOpen || !isSelected) {
+          dashUnreadSet.add(id);
+          document.getElementById('dash-chat-dot').classList.add('on');
+          const dotEl = document.querySelector(`.dash-station-btn[data-id="${id}"] .dash-station-unread`);
+          if (dotEl) dotEl.classList.add('on');
+          const pickerDot = document.getElementById('dash-picker-unread');
+          if (pickerDot) pickerDot.classList.add('on');
+          try { playDashNotifSound(); } catch(e) {}
+        }
+      }
+    } catch(e) {
+      console.error('Dash chat render error:', e);
+    }
+  }, err => {
+    msgs.innerHTML = `<div class="dash-chat-empty" style="color:#f44336;">שגיאת חיבור: ${err.message}</div>`;
+  });
+}
+
+async function sendDashChatMsg() {
+  const inp = document.getElementById('dash-chat-inp');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!dashChatStationId) { showToast('בחר מעבדה תחילה', 'warning'); return; }
+  const sid = dashChatStationId;
+  inp.value = '';
+  try {
+    await firebase.database().ref('chats/' + sid + '/msgs').push({
+      from: 'manager',
+      text,
+      ts:   Date.now(),
+      name: 'מנהל משמרת'
+    });
+    firebase.database().ref('chats/' + sid + '/managerUnread').set(false).catch(() => {});
+  } catch(e) {
+    showToast('שגיאה בשליחה: ' + e.message, 'error');
+    inp.value = text;
+  } finally {
+    inp.focus();
+  }
+}
+
+// Listen for any instructor replies across all stations
+function listenForInstructorReplies() {
+  const handler = snap => {
+    const id     = snap.key;
+    const unread = snap.child('managerUnread').val();
+    if (unread === true) {
+      const panelOpen  = document.getElementById('dash-chat-panel').classList.contains('open');
+      const isSelected = dashChatStationId === id;
+      if (!panelOpen || !isSelected) {
+        dashUnreadSet.add(id);
+        document.getElementById('dash-chat-dot').classList.add('on');
+        const dotEl = document.querySelector(`.dash-station-btn[data-id="${id}"] .dash-station-unread`);
+        if (dotEl) dotEl.classList.add('on');
+        const pickerDot = document.getElementById('dash-picker-unread');
+        if (pickerDot) pickerDot.classList.add('on');
+        playDashNotifSound();
+      }
+    }
+  };
+  firebase.database().ref('chats').on('child_changed', handler);
+  firebase.database().ref('chats').on('child_added',   handler);
+}
+
+function playDashNotifSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const t   = ctx.currentTime;
+    [[0, 660], [0.2, 880]].forEach(([delay, freq]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + delay);
+      g.gain.linearRampToValueAtTime(0.18, t + delay + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.38);
+      osc.start(t + delay); osc.stop(t + delay + 0.4);
+    });
+  } catch(e) {}
+}
+
+function escDashHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

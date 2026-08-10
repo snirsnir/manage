@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>הגדרת מתחמים</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { padding: 40px 32px; max-width: 680px; margin: 0 auto; }
+    h1   { font-size: 1.6rem; font-weight: 900; margin-bottom: 8px; }
+    .sub { color: var(--text-400); margin-bottom: 32px; font-size: .9rem; }
+    .log-line { padding: 8px 12px; border-radius: var(--r-sm); margin-bottom: 6px; font-size: .88rem; font-weight: 600; }
+    .ok  { background: rgba(0,230,118,.1); color: var(--running); }
+    .err { background: rgba(244,67,54,.1);  color: var(--closed);  }
+    .info{ background: rgba(240,180,41,.08); color: var(--cyan);    }
+    #done-msg { display:none; margin-top:24px; padding:20px; background:rgba(0,230,118,.1); border:1px solid rgba(0,230,118,.3); border-radius:var(--r-lg); color:var(--running); font-weight:700; font-size:1.05rem; text-align:center; }
+  </style>
+</head>
+<body>
+<div id="offline-banner">אין חיבור לאינטרנט</div>
+
+<h1>⚙️ הגדרת מתחמים ראשונית</h1>
+<p class="sub">לחץ על הכפתור כדי להכניס את כל המתחמים לבסיס הנתונים. ניתן להריץ גם כמה פעמים — המתחמים הקיימים יתעדכנו.</p>
+
+<button class="btn btn--primary" id="btn-insert" onclick="insertAll()" style="padding:16px 40px;font-size:1rem;margin-bottom:12px;">
+  הכנס את כל המתחמים
+</button>
+<button class="btn btn--secondary" id="btn-colors" onclick="fixColors()" style="padding:16px 40px;font-size:1rem;margin-bottom:28px;margin-right:12px;">
+  🎨 תיקון צבעי נושא בלבד
+</button>
+<button class="btn btn--secondary" onclick="resetSingle()" style="padding:16px 40px;font-size:1rem;margin-bottom:28px;margin-right:12px;">
+  🔄 אפס מתחם בודד
+</button>
+<button class="btn btn--secondary" onclick="diagnose()" style="padding:16px 40px;font-size:1rem;margin-bottom:28px;margin-right:12px;">
+  🔍 אבחון Firebase
+</button>
+
+<div id="log"></div>
+<div id="done-msg">✓ הכנסה הושלמה! כל המתחמים זמינים במערכת.</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const now = Date.now();
+
+function makeStation(id, name, topic, topicColor, videoUrl, order, floor) {
+  return {
+    id, name, topic, topicColor, videoUrl, order, floor: floor || 'other',
+    activityDuration:    25,
+    setupDuration:       7,
+    boardingDuration:    3,
+    autoTransitionDelay: 3,
+    status:              'idle',
+    sessionStartTime:    0,
+    sessionEndTime:      0,
+    nextSessionTime:     0,
+    boardingStartTime:   0,
+    boardingEndTime:     0,
+    setupStartTime:      0,
+    setupEndTime:        0,
+    extensions:          0,
+    totalExtensionMinutes: 0,
+    managerMessage:      '',
+    enabled:             true,
+    createdAt:           now,
+    lastUpdated:         now
+  };
+}
+
+const STATIONS = [
+  // ── קומה תחתונה ──
+  makeStation('computers1', 'מחשבים 1',          'סוד הפיצה המנצחת',    '#e53935', 'sod.html',                                            1,  'lower'),
+  makeStation('computers2', 'מחשבים 2',          'סוד הפיצה המנצחת',    '#e53935', 'sod.html',                                            2,  'lower'),
+  makeStation('lab-elec',   'מעבדת אלקטרוניקה', 'קסם המטבח המולקולרי', '#7c4dff', 'https://view.genially.com/695a24680205f1624b26fc68',   3,  'lower'),
+  makeStation('technology', 'טכנולוגיה',          'סוד הפיצה המנצחת',    '#e53935', 'sod.html',                                            4,  'lower'),
+  makeStation('medical-a',  'יחידה רפואית א׳',   'קסם המטבח המולקולרי', '#7c4dff', 'https://view.genially.com/695a24680205f1624b26fc68',   5,  'lower'),
+
+  // ── קומה עליונה ──
+  makeStation('lab1',       'מעבדה 1',            'בלשי המזון',           '#ff8f00', 'https://view.genially.com/695e287e8a83802e6c4a5c47',  6,  'upper'),
+  makeStation('lab2',       'מעבדה 2',            'בלשי המזון',           '#ff8f00', 'https://view.genially.com/695e287e8a83802e6c4a5c47',  7,  'upper'),
+  makeStation('lab3',       'מעבדה 3',            'בלשי המזון',           '#ff8f00', 'https://view.genially.com/695e287e8a83802e6c4a5c47',  8,  'upper'),
+  makeStation('lab4',       'מעבדה 4',            'בלשי המזון',           '#ff8f00', 'https://view.genially.com/695e287e8a83802e6c4a5c47',  9,  'upper'),
+  makeStation('lab5',       'מעבדה 5',            'קסם המטבח המולקולרי', '#7c4dff', 'https://view.genially.com/695a24680205f1624b26fc68',  10, 'upper'),
+  makeStation('lab6',       'מעבדה 6',            'קסם המטבח המולקולרי', '#7c4dff', 'https://view.genially.com/695a24680205f1624b26fc68',  11, 'upper'),
+  makeStation('medical-b',  'יחידה רפואית ב׳',   'קסם המטבח המולקולרי', '#7c4dff', 'https://view.genially.com/695a24680205f1624b26fc68',  12, 'upper'),
+];
+
+function log(msg, type='info') {
+  const d = document.createElement('div');
+  d.className = 'log-line ' + type;
+  d.textContent = msg;
+  document.getElementById('log').appendChild(d);
+}
+
+async function diagnose() {
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  log('קורא נתונים מ-Firebase...', 'info');
+  try {
+    const snap = await stationsRef().once('value');
+    let count = 0;
+    snap.forEach(child => {
+      count++;
+      const v       = child.val();
+      const pathKey = child.key;
+      const idField = v.id;
+      const match   = pathKey === idField;
+      const isAuto  = /^station_\d+$/.test(pathKey);
+      const status  = v.status || 'idle';
+      const marker  = match ? (isAuto ? '⚠️ ID אוטומטי' : '✓') : '❌ אי-התאמה';
+      const type    = match ? (isAuto ? 'err' : 'ok') : 'err';
+      const del     = isAuto
+        ? ` ← <button onclick="deleteStation('${pathKey}')" style="margin-right:8px;padding:2px 10px;background:rgba(244,67,54,.15);color:#f44336;border:1px solid rgba(244,67,54,.3);border-radius:6px;cursor:pointer;font-size:.8rem;">מחק</button>`
+        : '';
+      const d = document.createElement('div');
+      d.className = 'log-line ' + type;
+      d.innerHTML = `${marker}  נתיב: "${pathKey}"  |  שם: "${v.name}"  |  מצב: ${status}${del}`;
+      logEl.appendChild(d);
+    });
+    const d = document.createElement('div');
+    d.className = 'log-line info';
+    d.textContent = `── סה"כ ${count} מתחמים ב-Firebase ──`;
+    logEl.appendChild(d);
+  } catch(e) {
+    log('שגיאה: ' + e.message, 'err');
+  }
+}
+
+async function deleteStation(id) {
+  if (!confirm(`למחוק את המתחם "${id}" לצמיתות?\nלא ניתן לשחזר.`)) return;
+  try {
+    await stationsRef().child(id).remove();
+    log(`✓ "${id}" נמחק`, 'ok');
+    setTimeout(diagnose, 500);
+  } catch(e) {
+    log('שגיאה: ' + e.message, 'err');
+  }
+}
+
+async function resetSingle() {
+  const ids = STATIONS.map(s => s.id);
+  const id  = prompt(`מזהה המתחם לאיפוס מלא:\n(${ids.join(', ')})`);
+  if (!id) return;
+  const station = STATIONS.find(s => s.id === id.trim());
+  if (!station) { log(`✗ לא נמצא מתחם עם מזהה "${id}"`, 'err'); return; }
+  document.getElementById('log').innerHTML = '';
+  try {
+    await stationsRef().child(station.id).set(station);
+    log(`✓ ${station.name} (${station.id}) — הוכנס מחדש בהצלחה`, 'ok');
+  } catch(e) {
+    log(`✗ שגיאה: ${e.message}`, 'err');
+  }
+}
+
+async function fixColors() {
+  const btn = document.getElementById('btn-colors');
+  btn.disabled = true;
+  btn.textContent = '...מתקן';
+  document.getElementById('log').innerHTML = '';
+
+  let ok = 0, fail = 0;
+  for (const s of STATIONS) {
+    try {
+      await stationsRef().child(s.id).update({ topic: s.topic, topicColor: s.topicColor });
+      log(`✓ ${s.name} → ${s.topic} (${s.topicColor})`, 'ok');
+      ok++;
+    } catch(e) {
+      log(`✗ ${s.name}: ${e.message}`, 'err');
+      fail++;
+    }
+  }
+
+  btn.textContent = fail ? 'נסה שוב' : '✓ תוקן';
+  btn.disabled = !!fail;
+  log(`הושלם: ${ok} עודכנו${fail ? `, ${fail} נכשלו` : ''}`, 'info');
+}
+
+async function insertAll() {
+  const btn = document.getElementById('btn-insert');
+  btn.disabled = true;
+  btn.textContent = '...מכניס';
+  document.getElementById('log').innerHTML = '';
+
+  let ok = 0, fail = 0;
+  for (const s of STATIONS) {
+    try {
+      await stationsRef().child(s.id).set(s);
+      log(`✓ ${s.name} — ${s.topic}`, 'ok');
+      ok++;
+    } catch(e) {
+      log(`✗ ${s.name}: ${e.message}`, 'err');
+      fail++;
+    }
+  }
+
+  btn.textContent = 'הכנסה הושלמה';
+  if (!fail) {
+    document.getElementById('done-msg').style.display = 'block';
+  } else {
+    log(`הושלם: ${ok} הצליחו, ${fail} נכשלו`, 'info');
+    btn.disabled = false;
+    btn.textContent = 'נסה שוב';
+  }
+}
+</script>
+</body>
+</html>

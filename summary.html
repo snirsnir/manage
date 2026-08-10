@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>סיכום מערכת | טכנושף</title>
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #03031a;
+  --bg-card:   #070720;
+  --bg-card2:  #0d0d2b;
+  --cyan:      #00e5ff;
+  --cyan-dim:  rgba(0,229,255,.12);
+  --violet:    #a855f7;
+  --green:     #00e676;
+  --amber:     #ffc107;
+  --blue:      #2196f3;
+  --text-1:    #f0f4ff;
+  --text-2:    #c5cae9;
+  --text-3:    #7986a8;
+  --border:    rgba(255,255,255,.07);
+  --r:         14px;
+}
+
+html { direction: rtl; }
+
+body {
+  font-family: 'Heebo', 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-2);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.65;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(124,58,237,.18) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 90% 110%, rgba(0,229,255,.1) 0%, transparent 55%);
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98'%3E%3Cpath d='M28 66L0 49V17L28 0l28 17v32L28 66zm0 32L0 81V49l28 17 28-17v32L28 98z' fill='none' stroke='rgba(0%2C229%2C255%2C0.04)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+.page { position: relative; z-index: 1; max-width: 1140px; margin: 0 auto; padding: 0 28px 72px; }
+
+/* ── Hero ── */
+.hero { text-align: center; padding: 72px 24px 56px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--cyan-dim); border: 1px solid rgba(0,229,255,.25);
+  border-radius: 100px; padding: 5px 18px;
+  font-size: .78rem; font-weight: 700; letter-spacing: .06em;
+  color: var(--cyan); text-transform: uppercase; margin-bottom: 24px;
+}
+.hero-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
+
+.hero-title {
+  font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 900; line-height: 1.15;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 60%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 14px;
+}
+.hero-sub { font-size: 1.05rem; color: var(--text-3); max-width: 540px; margin: 0 auto 10px; }
+.hero-divider { width: 80px; height: 2px; margin: 32px auto 0; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+
+/* ── Section label ── */
+.section-label {
+  font-size: .72rem; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+  display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+}
+.section-label::before, .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Roles grid ── */
+.roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 64px; }
+@media(max-width: 780px) { .roles-grid { grid-template-columns: 1fr; } }
+
+.role-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; position: relative; }
+.role-card::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 3px; }
+.role-card--visitor::before { background: var(--blue);  box-shadow: 0 0 18px var(--blue);  }
+.role-card--guide::before   { background: var(--green); box-shadow: 0 0 18px var(--green); }
+.role-card--manager::before { background: var(--amber); box-shadow: 0 0 18px var(--amber); }
+
+.role-header { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+.role-icon   { font-size: 2.4rem; margin-bottom: 10px; display: block; }
+.role-title  { font-size: 1.35rem; font-weight: 900; color: var(--text-1); margin-bottom: 4px; }
+.role-subtitle { font-size: .82rem; color: var(--text-3); }
+.role-body   { padding: 22px 24px; }
+
+.cap-group + .cap-group { margin-top: 18px; }
+.cap-group-label {
+  font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.role-card--visitor .cap-group-label { color: var(--blue); }
+.role-card--guide   .cap-group-label { color: var(--green); }
+.role-card--manager .cap-group-label { color: var(--amber); }
+
+.cap-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.cap-item { display: flex; align-items: flex-start; gap: 10px; font-size: .875rem; color: var(--text-2); line-height: 1.5; }
+.cap-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.role-card--visitor .cap-dot { background: var(--blue); }
+.role-card--guide   .cap-dot { background: var(--green); }
+.role-card--manager .cap-dot { background: var(--amber); }
+
+.screen-chip {
+  display: inline-block; font-size: .68rem; font-weight: 700;
+  padding: 2px 9px; border-radius: 100px; margin-top: 4px;
+}
+.role-card--visitor .screen-chip { background: rgba(33,150,243,.15); color: #90caf9; border: 1px solid rgba(33,150,243,.3); }
+.role-card--guide   .screen-chip { background: rgba(0,230,118,.12);  color: #a5d6a7; border: 1px solid rgba(0,230,118,.3); }
+.role-card--manager .screen-chip { background: rgba(255,193,7,.12);  color: #ffe082; border: 1px solid rgba(255,193,7,.3);  }
+
+/* ── Flow ── */
+.flow-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r); padding: 32px 28px; margin-bottom: 64px; }
+.flow-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.flow-node {
+  background: var(--bg-card2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 18px;
+  font-size: .85rem; font-weight: 700; color: var(--text-1);
+  text-align: center; flex: 1; min-width: 120px;
+}
+.flow-node span { display: block; font-size: .72rem; font-weight: 500; color: var(--text-3); margin-top: 3px; }
+.flow-arrow { color: var(--cyan); font-size: 1.2rem; flex-shrink: 0; opacity: .6; }
+.flow-node.green { border-color: rgba(0,230,118,.3);  box-shadow: 0 0 14px rgba(0,230,118,.07); }
+.flow-node.amber { border-color: rgba(255,193,7,.3);   box-shadow: 0 0 14px rgba(255,193,7,.07); }
+.flow-node.blue  { border-color: rgba(33,150,243,.3);  box-shadow: 0 0 14px rgba(33,150,243,.07); }
+.flow-note { font-size: .78rem; color: var(--text-3); margin-top: 18px; text-align: right; }
+
+/* ── Upgrades ── */
+.upgrades-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.upgrade-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px 20px 18px;
+  transition: border-color .2s, transform .2s;
+  position: relative; overflow: hidden;
+}
+.upgrade-card:hover { border-color: rgba(0,229,255,.25); transform: translateY(-2px); }
+.upgrade-card::after { content: ''; position: absolute; bottom: 0; right: 0; left: 0; height: 2px; }
+.upgrade-card[data-tier="quick"]::after      { background: linear-gradient(90deg, transparent, var(--green)); }
+.upgrade-card[data-tier="mid"]::after        { background: linear-gradient(90deg, transparent, var(--cyan)); }
+.upgrade-card[data-tier="ambitious"]::after  { background: linear-gradient(90deg, transparent, var(--violet)); }
+.upgrade-card[data-tier="done"]::after       { background: linear-gradient(90deg, transparent, var(--amber)); }
+
+.upgrade-emoji { font-size: 1.7rem; margin-bottom: 10px; display: block; }
+.upgrade-title { font-size: .95rem; font-weight: 800; color: var(--text-1); margin-bottom: 6px; }
+.upgrade-desc  { font-size: .825rem; color: var(--text-3); line-height: 1.55; }
+
+.tier-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .66rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 10px; border-radius: 100px; margin-top: 10px;
+}
+.tier-tag--quick     { background: rgba(0,230,118,.12); color: #a5d6a7; border: 1px solid rgba(0,230,118,.3); }
+.tier-tag--mid       { background: rgba(0,229,255,.1);  color: #80deea; border: 1px solid rgba(0,229,255,.25); }
+.tier-tag--ambitious { background: rgba(168,85,247,.12);color: #d8b4fe; border: 1px solid rgba(168,85,247,.3); }
+.tier-tag--done      { background: rgba(255,193,7,.12); color: #ffe082; border: 1px solid rgba(255,193,7,.3); }
+
+/* ── Footer ── */
+.doc-footer {
+  margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .78rem; color: var(--text-3); flex-wrap: wrap; gap: 12px;
+}
+.footer-brand { display: flex; align-items: center; gap: 10px; color: var(--cyan); font-weight: 700; }
+.footer-dot   { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">מסמך מערכת</div>
+    <h1 class="hero-title">מערכת ניהול טכנושף</h1>
+    <p class="hero-sub">סיכום תפקידים, מסכים ורעיונות לשדרוג — אירוע מעבדות הזמן האמת</p>
+    <div class="hero-divider"></div>
+  </div>
+
+  <!-- Roles -->
+  <p class="section-label">תפקידים במערכת</p>
+
+  <div class="roles-grid">
+
+    <!-- Visitor -->
+    <div class="role-card role-card--visitor">
+      <div class="role-header">
+        <span class="role-icon">🧑‍🔬</span>
+        <div class="role-title">לקוח / מבקר</div>
+        <div class="role-subtitle">צופה בלבד · ללא כניסה למערכת</div>
+      </div>
+      <div class="role-body">
+        <div class="cap-group">
+          <div class="cap-group-label">מה הוא רואה</div>
+          <ul class="cap-list">
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">טלוויזיות מעל כל מעבדה</strong> — מציגות את שם הפעילות הבאה, מצב הסבב הנוכחי וחץ כיוון אל המעבדה
+                <br><span class="screen-chip">מסך קהל · door.html</span>
+              </div>
+            </li>
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">לוח המראות הגדול</strong> — מסך ענק המציג את כל המעבדות, הסטטוס, הטיימר והפעילות הבאה — מסודר לפי קומות
+                <br><span class="screen-chip">לוח סטטוס · board.html</span>
+              </div>
+            </li>
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">סמארטפון</strong> — כניסה לקישור — מציג תצוגה כוללת של כל המעבדות בזמן אמת
+                <br><span class="screen-chip">מסך קהל · door.html</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="cap-group">
+          <div class="cap-group-label">מה הוא יכול לעשות</div>
+          <ul class="cap-list">
+            <li class="cap-item"><span class="cap-dot"></span>לנווט בין מעבדות לפי המידע שמוצג על המסכים</li>
+            <li class="cap-item"><span class="cap-dot"></span>לדעת מתי מתחיל הסבב הבא ואיפה — ללא אינטראקציה עם הצוות</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guide -->
+    <div class="role-card role-card--guide">
+      <div class="role-header">
+        <span class="role-icon">🧑‍🏫</span>
+        <div class="role-title">מדריך</div>
+        <div class="role-subtitle">מפעיל פעילויות · מתקשר עם ניהול</div>
+      </div>
+      <div class="role-body">
+        <div class="cap-group">
+          <div class="cap-group-label">כלים זמינים</div>
+          <ul class="cap-list">
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">מסך מדריכים</strong> — רשימת כל המעבדות לפי קומות, לחיצה על מעבדה פותחת תצוגה ממוקדת
+                <br><span class="screen-chip">מסך מדריכים · activities.html</span>
+              </div>
+            </li>
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">הפעלת פעילות</strong> — לוחץ "התחל פעילות" ← חלון אישור ← הסרטון נפתח וטיימר 25 דקות מתחיל בפיירבייס
+              </div>
+            </li>
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">ניווט בין שלבים</strong> — המערכת מעברת אוטומטית: ריצה → הכנה → עלייה על סיפון → ריצה הבאה
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="cap-group">
+          <div class="cap-group-label">תקשורת (בפיתוח)</div>
+          <ul class="cap-list">
+            <li class="cap-item"><span class="cap-dot"></span>שליחת הודעה למנהל משמרת / מנהל קומה</li>
+            <li class="cap-item"><span class="cap-dot"></span>קבלת הודעות ועדכונים מהניהול בזמן אמת</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manager -->
+    <div class="role-card role-card--manager">
+      <div class="role-header">
+        <span class="role-icon">🗂️</span>
+        <div class="role-title">מנהל משמרת / קומה</div>
+        <div class="role-subtitle">שליטה מלאה · ניטור · עריכה</div>
+      </div>
+      <div class="role-body">
+        <div class="cap-group">
+          <div class="cap-group-label">כלים זמינים</div>
+          <ul class="cap-list">
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">דשבורד מנהל</strong> — כרטיסי כל המעבדות בזמן אמת, טיימרים, מצב, לחצני ניהול מהירים
+                <br><span class="screen-chip">עמדת מנהל משמרת · dashboard.html</span>
+              </div>
+            </li>
+            <li class="cap-item">
+              <span class="cap-dot"></span>
+              <div>
+                <strong style="color:var(--text-1)">ניהול מתחמים</strong> — עריכת שם, נושא, צבע, קישור Genially, משכי זמן, הפעלה/כיבוי
+                <br><span class="screen-chip">ניהול פעילויות · admin.html</span>
+              </div>
+            </li>
+            <li class="cap-item"><span class="cap-dot"></span>שליטה ידנית על מעברי מצב (idle / boarding / running / setup / break / closed)</li>
+            <li class="cap-item"><span class="cap-dot"></span>הארכת זמן פעילות: +5 / +10 / +15 דקות</li>
+            <li class="cap-item"><span class="cap-dot"></span>הפסקת פעילות מיידית לכל מעבדה</li>
+          </ul>
+        </div>
+        <div class="cap-group">
+          <div class="cap-group-label">ניווט בין מסכים</div>
+          <ul class="cap-list">
+            <li class="cap-item"><span class="cap-dot"></span>גישה לכל מסכי המערכת מסרגל הניווט העליון</li>
+            <li class="cap-item"><span class="cap-dot"></span>שינוי ערכת נושא (צבע + מצב אור/חושך) הנשמרת לכל הדפדפנים</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Flow -->
+  <p class="section-label">מחזור חיי פעילות</p>
+  <div class="flow-wrap">
+    <div class="flow-row">
+      <div class="flow-node blue">⬤ IDLE<span>ממתין</span></div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-node blue">🚪 BOARDING<span>עלייה על סיפון</span></div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-node green">▶ RUNNING<span>פעילות פעילה · 25 דק׳</span></div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-node amber">⚙ SETUP<span>הכנה · 7 דק׳</span></div>
+      <div class="flow-arrow" style="color:var(--violet)">↺</div>
+    </div>
+    <p class="flow-note">RUNNING → SETUP → BOARDING הם אוטומטיים &nbsp;·&nbsp; מעבר BOARDING → RUNNING הוא ידני (המדריך לוחץ) &nbsp;·&nbsp; BREAK ו-CLOSED זמינים בכל עת למנהל</p>
+  </div>
+
+  <!-- Upgrades -->
+  <p class="section-label">רעיונות לשדרוג</p>
+  <div class="upgrades-grid">
+
+    <div class="upgrade-card" data-tier="quick">
+      <span class="upgrade-emoji">💬</span>
+      <div class="upgrade-title">מערכת הודעות בזמן אמת</div>
+      <div class="upgrade-desc">ערוץ Firebase להודעות ישירות בין מדריך למנהל משמרת. הודעות נשמרות עם timestamp ומוצגות כחלון chat קטן בממשקים.</div>
+      <span class="tier-tag tier-tag--quick">⚡ קצר טווח</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="quick">
+      <span class="upgrade-emoji">🔔</span>
+      <div class="upgrade-title">התראות קוליות</div>
+      <div class="upgrade-desc">צליל (Web Audio API) כשטיימר מגיע ל-5 דקות ועם סיום הפעילות. כל מדריך שומע את ה-alert של המעבדה שלו.</div>
+      <span class="tier-tag tier-tag--quick">⚡ קצר טווח</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="quick">
+      <span class="upgrade-emoji">📢</span>
+      <div class="upgrade-title">שידור חירום</div>
+      <div class="upgrade-desc">כפתור "שידור לכולם" בדשבורד המנהל — שולח הודעה שמופיעה כבאנר אדום בכל מסכי המדריכים בו-זמנית.</div>
+      <span class="tier-tag tier-tag--quick">⚡ קצר טווח</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="mid">
+      <span class="upgrade-emoji">📱</span>
+      <div class="upgrade-title">QR קוד לכל מעבדה</div>
+      <div class="upgrade-desc">מדפסים QR ייחודי לכל מעבדה. מבקרים סורקים ורואים על הסמארטפון את מצב אותה מעבדה — זמן שנותר, הפעילות הבאה.</div>
+      <span class="tier-tag tier-tag--mid">⏱ בינוני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="mid">
+      <span class="upgrade-emoji">📊</span>
+      <div class="upgrade-title">לוג פעילות וסטטיסטיקות</div>
+      <div class="upgrade-desc">כל מעבר מצב נשמר ב-Firebase. בסוף האירוע: כמה סבבים רצו, ממוצע זמן הכנה, אילו מעבדות פיגרו — בגרף פשוט.</div>
+      <span class="tier-tag tier-tag--mid">⏱ בינוני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="mid">
+      <span class="upgrade-emoji">🔄</span>
+      <div class="upgrade-title">מסך קהל מסתובב</div>
+      <div class="upgrade-desc">מסך הקהל מחזיק רשימת מעבדות ומתחלף ביניהן אוטומטית כל X שניות — מושלם לטלוויזיה ראשית בכניסה.</div>
+      <span class="tier-tag tier-tag--mid">⏱ בינוני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="mid">
+      <span class="upgrade-emoji">🧑‍🤝‍🧑</span>
+      <div class="upgrade-title">ספירת מבקרים</div>
+      <div class="upgrade-desc">מדריך מזין בתחילת כל סבב כמה משתתפים יש. מנהל המשמרת רואה סיכום: סה"כ מבקרים שעברו, מעבדה הכי עמוסה.</div>
+      <span class="tier-tag tier-tag--mid">⏱ בינוני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="ambitious">
+      <span class="upgrade-emoji">📅</span>
+      <div class="upgrade-title">תכנון לוח זמנים מראש</div>
+      <div class="upgrade-desc">מנהל מזין בבוקר: קבוצה A → מעבדה 1-3, קבוצה B → מעבדה 4-6. המערכת יוצרת לוח ומעדכנת את מסכי הקהל בהתאם.</div>
+      <span class="tier-tag tier-tag--ambitious">🚀 שאפתני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="ambitious">
+      <span class="upgrade-emoji">📶</span>
+      <div class="upgrade-title">מצב לא מקוון</div>
+      <div class="upgrade-desc">Service Worker שומר cache מלא של הממשקים. אם ה-WiFi נופל, הטיימרים ממשיכים מקומית ומסתנכרנים כשהחיבור חוזר.</div>
+      <span class="tier-tag tier-tag--ambitious">🚀 שאפתני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="ambitious">
+      <span class="upgrade-emoji">🎯</span>
+      <div class="upgrade-title">מצב הדרכה למדריך</div>
+      <div class="upgrade-desc">לחצן "כרטיס הדרכה" — פותח שקפי עזר לכל פעילות: נקודות עיקריות, שאלות טובות לשאול, מה לעשות אם נתקעים.</div>
+      <span class="tier-tag tier-tag--ambitious">🚀 שאפתני</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="done">
+      <span class="upgrade-emoji">🎨</span>
+      <div class="upgrade-title">ערכות נושא ומצב אור/חושך</div>
+      <div class="upgrade-desc">כפתור מצב אור/חושך + 6 ערכות צבע (ציאן, אדום, ירוק, כתום, סגול, ורוד) — נשמרות ב-localStorage ומיושמות בכל המסכים.</div>
+      <span class="tier-tag tier-tag--done">✓ כבר מומש</span>
+    </div>
+
+    <div class="upgrade-card" data-tier="done">
+      <span class="upgrade-emoji">🏠</span>
+      <div class="upgrade-title">מיון לפי קומות</div>
+      <div class="upgrade-desc">כל מסכי הניהול מציגים את המעבדות מסודרות: קומה תחתונה ← קומה עליונה עם כותרת בולטת ומסודרת.</div>
+      <span class="tier-tag tier-tag--done">✓ כבר מומש</span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <div class="footer-brand">
+      <span class="footer-dot"></span>
+      מערכת טכנושף · פיירבייס Realtime DB
+    </div>
+    <span>6 מסכים · 12 מעבדות · ניהול בזמן אמת</span>
+    <span>טכנודע © 2026</span>
+  </div>
+
+</div>
+</body>
+</html>

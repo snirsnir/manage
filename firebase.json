@@ -1,14 +1,18 @@
 {
   "hosting": {
-    "public": "public",
+    "public": ".",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      { "source": "/activities", "destination": "/activities.html" },
       { "source": "/admin", "destination": "/admin.html" },
       { "source": "/dashboard", "destination": "/dashboard.html" },
       { "source": "/remote", "destination": "/remote.html" },
       { "source": "/door", "destination": "/door.html" },
       { "source": "/screen", "destination": "/screen.html" },
-      { "source": "/board", "destination": "/board.html" }
+      { "source": "/board",           "destination": "/board.html" },
+      { "source": "/sod",             "destination": "/sod.html" },
+      { "source": "/setup-stations",  "destination": "/setup-stations.html" },
+      { "source": "/summary",         "destination": "/summary.html" }
     ],
     "headers": [
       {

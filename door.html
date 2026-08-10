@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>מסך קהל | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
+  <style>
+    body { background: var(--bg-0); }
+
+    /* ════════════════════════════════
+       SHARED STEP CHROME
+    ════════════════════════════════ */
+    .step-screen {
+      min-height: 100dvh; display: flex; flex-direction: column;
+      align-items: center; padding: 36px 28px 28px;
+    }
+    .step-screen.hidden { display: none; }
+
+    .step-logo  { height: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 14px rgba(240,180,41,.4)); }
+    .step-title { font-size: 1.7rem; font-weight: 900; color: var(--text-100); margin-bottom: 4px; }
+    .step-sub   { font-size: .88rem; color: var(--text-400); margin-bottom: 28px; }
+
+    .step-bar {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--glass-border); transition: background .3s;
+    }
+    .step-dot.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .step-dot.done   { background: var(--running); }
+
+    .step-btns { display: flex; gap: 10px; margin-top: auto; padding-top: 24px; }
+    .step-btns .btn { padding: 14px 36px; font-size: 1rem; border-radius: var(--r-lg); }
+
+    /* ════════════════════════════════
+       STEP 1 — PICKER
+    ════════════════════════════════ */
+    .pick-count {
+      font-size: .88rem; font-weight: 700; color: var(--cyan);
+      background: rgba(240,180,41,.1); border: 1px solid rgba(240,180,41,.25);
+      border-radius: 100px; padding: 4px 14px; margin-bottom: 20px;
+    }
+
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+      gap: 14px; width: 100%; max-width: 880px;
+    }
+
+    .picker-card {
+      background: var(--glass);
+      border: 3px solid var(--glass-border);
+      border-radius: var(--r-lg); padding: 20px 16px 16px;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: border-color .2s, background .2s, transform .12s, box-shadow .2s;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      text-align: center;
+    }
+    .picker-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      transition: background .3s;
+    }
+    .picker-card.status-running::before  { background: var(--running); }
+    .picker-card.status-boarding::before { background: var(--boarding); }
+    .picker-card.status-setup::before    { background: var(--setup); }
+    .picker-card.status-idle::before     { background: var(--idle); }
+    .picker-card.status-closed::before   { background: var(--closed); }
+    .picker-card.status-break::before    { background: var(--break); }
+    .picker-card:active { transform: scale(.96); }
+
+    .picker-card.selected {
+      border-color: var(--cyan);
+      background: rgba(240,180,41,.07);
+      box-shadow: 0 0 0 2px rgba(240,180,41,.25), 0 0 28px rgba(240,180,41,.18);
+    }
+    .picker-card.selected::before { background: var(--cyan) !important; }
+
+    .picker-card.at-max { opacity: .38; pointer-events: none; }
+    .picker-card.at-max.selected { opacity: 1; pointer-events: all; }
+
+    .picker-check {
+      position: absolute; top: 10px; left: 10px;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid rgba(240,180,41,.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 900; color: #000;
+      background: transparent; transition: all .2s;
+    }
+    .picker-card.selected .picker-check { background: var(--cyan); border-color: var(--cyan); }
+
+    .picker-dot  { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 12px; }
+    .picker-name { font-size: 1rem; font-weight: 800; color: var(--text-100); margin-bottom: 4px; line-height: 1.2; }
+    .picker-topic{ font-size: .92rem; font-weight: 600; color: var(--text-300); margin-bottom: 10px; }
+
+    /* ════════════════════════════════
+       STEP 2 — DIRECTION PICKER
+    ════════════════════════════════ */
+    .dir-list {
+      display: flex; flex-direction: column; gap: 20px;
+      width: 100%; max-width: 680px;
+    }
+
+    .dir-row {
+      display: flex; align-items: center; gap: 20px;
+      background: var(--glass); border: 2px solid var(--glass-border);
+      border-radius: var(--r-lg); padding: 18px 20px;
+    }
+    .dir-row-info { flex: 1; min-width: 0; }
+    .dir-row-name { font-size: 1rem; font-weight: 800; color: var(--text-100); }
+    .dir-row-topic{ font-size: .95rem; font-weight: 600; margin-top: 2px; }
+
+    /* 3×3 D-pad */
+    .dpad {
+      display: grid; grid-template-columns: repeat(3, 40px);
+      grid-template-rows: repeat(3, 40px); gap: 4px; flex-shrink: 0;
+    }
+    .dpad-btn {
+      width: 40px; height: 40px; border-radius: var(--r-sm);
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      color: var(--text-300); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dpad-btn:hover  { background: rgba(255,255,255,.12); }
+    .dpad-btn:active { transform: scale(.9); }
+    .dpad-btn.selected {
+      background: var(--cyan); border-color: var(--cyan);
+      color: #000; font-weight: 900;
+      box-shadow: 0 0 12px rgba(240,180,41,.5);
+    }
+    .dpad-center { /* empty center */ opacity: 0; pointer-events: none; }
+
+    .dir-chosen {
+      font-size: 2.4rem; width: 48px; text-align: center; flex-shrink: 0;
+      transition: transform .2s;
+    }
+
+    /* ════════════════════════════════
+       STEP 3 — DISPLAY
+    ════════════════════════════════ */
+    #display {
+      width: 100vw; height: 100dvh;
+      display: grid; position: relative;
+    }
+    #display.hidden { display: none; }
+
+    #display[data-count="1"] { grid-template-columns: 1fr; }
+    #display[data-count="2"] { grid-template-columns: 1fr 1fr; }
+    #display[data-count="3"] { grid-template-columns: 1fr 1fr 1fr; }
+    #display[data-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+    /* Back button */
+    .disp-back {
+      position: fixed; bottom: 16px; right: 16px; z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.18);
+      color: var(--text-300); font-size: .82rem; font-weight: 600;
+      padding: 10px 18px; border-radius: 100px; cursor: pointer;
+      transition: background .2s, opacity .2s; opacity: .55;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .disp-back:hover { opacity: 1; background: rgba(0,0,0,.9); }
+
+    /* Station cell */
+    .disp-cell {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: space-between;
+      padding: clamp(18px,3.5vw,56px) clamp(14px,3.5vw,56px) clamp(14px,3vh,40px);
+      text-align: center; position: relative; overflow: hidden;
+      border: 1px solid rgba(255,255,255,.05);
+      transition: background .8s ease;
+    }
+    .disp-cell::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      transition: background .8s ease; pointer-events: none;
+    }
+    /* accent top stripe per cell */
+    .disp-cell::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2;
+    }
+    .disp-cell.status-idle::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(84,110,122,.22) 0%, transparent 68%); }
+    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.2) 0%, transparent 68%); }
+    .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(33,150,243,.2) 0%, transparent 68%); }
+    .disp-cell.status-setup::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,193,7,.17) 0%, transparent 68%); }
+    .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.2) 0%, transparent 68%); }
+    .disp-cell.status-break::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,152,0,.2) 0%, transparent 68%); }
+
+    .disp-cell.status-idle::after     { background: var(--idle);    }
+    .disp-cell.status-boarding::after { background: var(--boarding); box-shadow: 0 0 12px var(--boarding); }
+    .disp-cell.status-running::after  { background: var(--running); }
+    .disp-cell.status-setup::after    { background: var(--setup);   }
+    .disp-cell.status-closed::after   { background: var(--closed);  }
+    .disp-cell.status-break::after    { background: var(--break);   }
+
+    .disp-cell > * { position: relative; z-index: 1; }
+
+    .disp-cell-top {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .disp-cell-logo  { height: clamp(26px,3.5vw,48px); opacity: .7; }
+    .disp-cell-event { font-size: clamp(.5rem,1.1vw,.9rem); color: var(--text-400); letter-spacing: .06em; }
+
+    .disp-cell-main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: clamp(8px,1.8vh,22px); width: 100%;
+    }
+
+    .disp-name  { font-size: clamp(1.1rem,3.2vw,3rem); font-weight: 900; color: var(--text-100); line-height: 1.1; }
+    .disp-topic { font-size: clamp(.7rem,1.8vw,1.7rem); font-weight: 600; }
+    .disp-icon  { font-size: clamp(1.8rem,5vw,5.5rem); line-height: 1; }
+
+    .disp-label {
+      font-size: clamp(.8rem,2vw,2rem); font-weight: 800; letter-spacing: .05em;
+      padding: clamp(5px,1vw,12px) clamp(14px,2.5vw,42px);
+      border-radius: 100px; border: 2px solid currentColor;
+      box-shadow: 0 0 18px currentColor;
+    }
+    .disp-label.status-idle     { color: var(--idle);    }
+    .disp-label.status-boarding { color: var(--boarding); animation: pulse-disp 2s ease-in-out infinite; }
+    .disp-label.status-running  { color: var(--running); }
+    .disp-label.status-setup    { color: var(--setup);   }
+    .disp-label.status-closed   { color: var(--closed);  }
+    .disp-label.status-break    { color: var(--break);   }
+    @keyframes pulse-disp {
+      0%,100% { box-shadow: 0 0 14px currentColor }
+      50%     { box-shadow: 0 0 38px currentColor, 0 0 68px currentColor }
+    }
+
+    .disp-boarding-msg { font-size: clamp(.75rem,1.8vw,1.5rem); font-weight: 700; color: var(--boarding); }
+
+    .disp-next {
+      background: rgba(0,0,0,.4); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.1); border-radius: var(--r-xl);
+      padding: clamp(8px,1.5vw,24px) clamp(14px,2.5vw,48px);
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .disp-next-lbl  { font-size: clamp(.55rem,1.1vw,1rem); color: var(--text-300); font-weight: 600; }
+    .disp-next-time {
+      font-family: var(--font-display); font-size: clamp(1.2rem,3.5vw,4rem);
+      font-weight: 900; letter-spacing: 4px; color: var(--text-100);
+      text-shadow: 0 0 22px rgba(240,180,41,.5); font-variant-numeric: tabular-nums;
+    }
+    .disp-next-rel { font-size: clamp(.55rem,1.1vw,1.1rem); color: var(--text-300); }
+
+    .disp-break {
+      background: rgba(255,152,0,.1); border: 2px solid rgba(255,152,0,.4);
+      border-radius: var(--r-xl); padding: clamp(8px,1.5vw,24px) clamp(16px,3vw,48px);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .disp-break-lbl   { font-size: clamp(.6rem,1.2vw,1.2rem); color: rgba(255,152,0,.8); font-weight: 600; }
+    .disp-break-timer {
+      font-family: var(--font-display); font-size: clamp(1.6rem,4.5vw,4.5rem);
+      font-weight: 900; letter-spacing: 4px; color: #ff9800;
+      text-shadow: 0 0 32px rgba(255,152,0,.6); font-variant-numeric: tabular-nums;
+    }
+
+    /* Direction arrow at bottom */
+    .disp-cell-bottom {
+      width: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+    }
+    .disp-clock {
+      font-family: var(--font-display); font-size: clamp(.9rem,2.2vw,2.4rem);
+      font-weight: 700; color: var(--text-300); letter-spacing: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+    .disp-arrow {
+      font-size: clamp(2.8rem,7vw,7rem); line-height: 1;
+      color: rgba(255,255,255,.85); filter: drop-shadow(0 0 12px rgba(255,255,255,.4));
+      display: inline-block; transition: transform .3s;
+    }
+    .disp-msg {
+      background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.4);
+      border-radius: var(--r-md); padding: clamp(5px,.8vw,12px) clamp(8px,1.5vw,22px);
+      font-size: clamp(.55rem,1.1vw,1.2rem); font-weight: 700; color: #ffe082;
+      max-width: 40%; display: none; text-align: center;
+    }
+    .disp-msg.visible { display: block; }
+  </style>
+</head>
+<body>
+<div class="nav-sentinel" id="nav-sentinel"></div>
+<nav class="navbar navbar--autohide" id="auto-navbar">
+  <div class="navbar__nav">
+    <a href="dashboard.html"  class="nav-link">עמדת מנהל משמרת</a>
+    <a href="board.html"      class="nav-link">לוח סטטוס</a>
+    <a href="door.html"       class="nav-link active">מסך קהל</a>
+    <a href="activities.html" class="nav-link">מסך מדריכים</a>
+    <a href="admin.html"      class="nav-link">ניהול פעילויות</a>
+  </div>
+  <div class="theme-controls">
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="מצב אור">☀️</button>
+    <div class="accent-swatches">
+      <div class="accent-swatch active" data-accent="cyan"   style="background:#F0B429" onclick="setAccent('cyan')"   title="זהב"></div>
+      <div class="accent-swatch"        data-accent="red"    style="background:#f44336" onclick="setAccent('red')"    title="אדום"></div>
+      <div class="accent-swatch"        data-accent="green"  style="background:#00e676" onclick="setAccent('green')"  title="ירוק"></div>
+      <div class="accent-swatch"        data-accent="orange" style="background:#ff9800" onclick="setAccent('orange')" title="כתום"></div>
+      <div class="accent-swatch"        data-accent="purple" style="background:#7c4dff" onclick="setAccent('purple')" title="סגול"></div>
+      <div class="accent-swatch"        data-accent="pink"   style="background:#f06292" onclick="setAccent('pink')"   title="ורוד"></div>
+    </div>
+  </div>
+  <a href="index.html" class="navbar__brand">
+    <img src="logo.png" alt="טכנודע" class="navbar__logo">
+    <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">מסך קהל</div></div>
+  </a>
+</nav>
+
+<!-- ════ STEP 1: SELECT STATIONS ════ -->
+<div id="step1" class="step-screen">
+  <img src="logo.png" alt="טכנודע" class="step-logo">
+  <div class="step-title">מסך קהל</div>
+  <div class="step-sub">בחר עד 4 מעבדות להצגה</div>
+  <div class="step-bar">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot"        id="dot2"></div>
+  </div>
+  <div class="pick-count" id="pick-count">0 / 4 נבחרו</div>
+  <div class="picker-grid" id="picker-grid">
+    <div style="grid-column:1/-1"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+  <div class="step-btns">
+    <button class="btn btn--primary" id="btn-next" onclick="goToStep2()" disabled>הבא — בחר כיוונים</button>
+  </div>
+</div>
+
+<!-- ════ STEP 2: PICK DIRECTIONS ════ -->
+<div id="step2" class="step-screen hidden">
+  <img src="logo.png" alt="טכנודע" class="step-logo">
+  <div class="step-title">כיוון המעבדה</div>
+  <div class="step-sub">בחר חץ כיוון לכל מעבדה</div>
+  <div class="step-bar">
+    <div class="step-dot done"   id="dot1b"></div>
+    <div class="step-dot active" id="dot2b"></div>
+  </div>
+  <div class="dir-list" id="dir-list"></div>
+  <div class="step-btns">
+    <button class="btn btn--ghost"    onclick="goToStep1()">חזרה לבחירה</button>
+    <button class="btn btn--primary"  onclick="showDisplay()">הצג מסך קהל</button>
+  </div>
+</div>
+
+<!-- ════ STEP 3: DISPLAY ════ -->
+<div id="display" class="hidden" data-count="1">
+  <button class="disp-back" onclick="goToStep1()">← חזרה לבחירה</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/theme.js"></script>
+<script>
+let stations    = {};
+let selectedIds = [];           // array, up to 4, ordered
+let directions  = {};           // { stationId: 'down' | 'up' | ... }
+let inDisplay   = false;
+let clockInt    = null;
+
+// ── Direction config ──
+// 3×3 grid positions (row,col) → direction key
+// Center is empty
+const DPAD_LAYOUT = [
+  ['up-left',  'up',   'up-right'],
+  ['left',     null,   'right'   ],
+  ['down-left','down', 'down-right'],
+];
+
+const DIR_ARROW = {
+  'up':         '▲',
+  'up-right':   '▲',
+  'right':      '▲',
+  'down-right': '▲',
+  'down':       '▲',
+  'down-left':  '▲',
+  'left':       '▲',
+  'up-left':    '▲',
+};
+
+const DIR_ROTATE = {
+  'up':         0,
+  'up-right':   45,
+  'right':      90,
+  'down-right': 135,
+  'down':       180,
+  'down-left':  225,
+  'left':       270,
+  'up-left':    315,
+};
+
+const DIR_LABEL = {
+  'up':         '↑',
+  'up-right':   '↗',
+  'right':      '→',
+  'down-right': '↘',
+  'down':       '↓',
+  'down-left':  '↙',
+  'left':       '←',
+  'up-left':    '↖',
+};
+
+// ── Firebase ──
+stationsRef().on('value', snap => {
+  stations = {};
+  snap.forEach(c => {
+    const v = c.val();
+    if (v && v.id && v.enabled !== false) stations[v.id] = v;
+  });
+  if (inDisplay) renderDisplay();
+  else renderPicker();
+});
+
+// ════════════════════════════════
+// STEP 1 — PICKER
+// ════════════════════════════════
+function groupByFloor(list) {
+  const order  = ['lower','upper'];
+  const labels = { lower:'🏠 קומה תחתונה', upper:'🔝 קומה עליונה' };
+  const map    = {};
+  list.forEach(s => { const f = s.floor||'upper'; if (!map[f]) map[f]=[]; map[f].push(s); });
+  return order.filter(f => map[f]&&map[f].length).map(f => ({ label: labels[f]||f, stations: map[f] }));
+}
+
+function renderPicker() {
+  const grid  = document.getElementById('picker-grid');
+  const list  = Object.values(stations).sort((a,b) => (a.order||0)-(b.order||0));
+  const atMax = selectedIds.length >= 4;
+
+  if (!list.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-400);padding:48px 0;">אין מתחמים פעילים</div>';
+    return;
+  }
+
+  const groups = groupByFloor(list);
+  grid.innerHTML = groups.map(g =>
+    `<div class="floor-section-header" style="grid-column:1/-1">${g.label}</div>` +
+    g.stations.map(s => {
+      const st    = s.status || 'idle';
+      const color = s.topicColor || 'var(--cyan)';
+      const isSel = selectedIds.includes(s.id);
+      const cls   = `picker-card status-${st}${isSel?' selected':''}${atMax&&!isSel?' at-max':''}`;
+      return `<div class="${cls}" onclick="togglePick('${s.id}')">
+        <div class="picker-check">✓</div>
+        <div class="picker-dot" style="background:${color};box-shadow:0 0 8px ${color}80"></div>
+        <div class="picker-name">${s.name}</div>
+        <div class="picker-topic">${s.topic||'ללא נושא'}</div>
+        <span class="badge badge--${st}" style="font-size:.63rem;padding:2px 8px;">${STATUS[st].label}</span>
+      </div>`;
+    }).join('')
+  ).join('');
+
+  document.getElementById('pick-count').textContent = `${selectedIds.length} / 4 נבחרו`;
+  document.getElementById('btn-next').disabled = selectedIds.length === 0;
+}
+
+function togglePick(id) {
+  if (selectedIds.includes(id)) {
+    selectedIds = selectedIds.filter(x => x !== id);
+    delete directions[id];
+  } else {
+    if (selectedIds.length >= 4) return;
+    selectedIds.push(id);
+  }
+  renderPicker();
+}
+
+// ════════════════════════════════
+// STEP 2 — DIRECTION PICKER
+// ════════════════════════════════
+function goToStep2() {
+  if (!selectedIds.length) return;
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+  renderDirList();
+}
+
+function goToStep1() {
+  inDisplay = false;
+  clearInterval(clockInt);
+  document.getElementById('display').classList.add('hidden');
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step1').classList.remove('hidden');
+  renderPicker();
+}
+
+function renderDirList() {
+  const list = document.getElementById('dir-list');
+  list.innerHTML = selectedIds.map(id => {
+    const s     = stations[id];
+    if (!s) return '';
+    const color = s.topicColor || 'var(--cyan)';
+    const chosen = directions[id] || null;
+    const arrowHtml = chosen
+      ? `<span class="disp-arrow" style="font-size:2rem;transform:rotate(${DIR_ROTATE[chosen]}deg)">${DIR_ARROW[chosen]}</span>`
+      : `<span style="font-size:2rem;color:var(--text-400)">—</span>`;
+
+    const dpadHtml = DPAD_LAYOUT.map(row =>
+      row.map(dir => dir === null
+        ? `<div class="dpad-center"></div>`
+        : `<button class="dpad-btn${chosen===dir?' selected':''}" onclick="setDir('${id}','${dir}')" title="${DIR_LABEL[dir]}">${DIR_LABEL[dir]}</button>`
+      ).join('')
+    ).join('');
+
+    return `<div class="dir-row" id="dirrow-${id}">
+      <div class="dir-row-info">
+        <div class="dir-row-name" style="border-right:3px solid ${color};padding-right:8px">${s.name}</div>
+        <div class="dir-row-topic" style="color:${color}">${s.topic||''}</div>
+      </div>
+      <div id="dir-chosen-${id}">${arrowHtml}</div>
+      <div class="dpad" id="dpad-${id}">${dpadHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function setDir(id, dir) {
+  directions[id] = dir;
+  // Update just this row's dpad and chosen arrow
+  const dpad   = document.getElementById(`dpad-${id}`);
+  const chosen = document.getElementById(`dir-chosen-${id}`);
+  if (!dpad || !chosen) return;
+  dpad.querySelectorAll('.dpad-btn').forEach(btn => btn.classList.remove('selected'));
+  const sel = [...dpad.querySelectorAll('.dpad-btn')].find(b => b.getAttribute('onclick').includes(`'${dir}'`));
+  if (sel) sel.classList.add('selected');
+  chosen.innerHTML = `<span class="disp-arrow" style="font-size:2rem;transform:rotate(${DIR_ROTATE[dir]}deg)">${DIR_ARROW[dir]}</span>`;
+}
+
+// ════════════════════════════════
+// STEP 3 — DISPLAY
+// ════════════════════════════════
+function showDisplay() {
+  if (!selectedIds.length) return;
+  inDisplay = true;
+  document.getElementById('step2').classList.add('hidden');
+  const disp = document.getElementById('display');
+  disp.classList.remove('hidden');
+  disp.setAttribute('data-count', selectedIds.length);
+  renderDisplay();
+  clearInterval(clockInt);
+  clockInt = setInterval(tickDisplay, 1000);
+}
+
+function renderDisplay() {
+  const disp = document.getElementById('display');
+  disp.querySelectorAll('.disp-cell').forEach(el => el.remove());
+  disp.setAttribute('data-count', selectedIds.length);
+
+  selectedIds.forEach(id => {
+    const cell  = document.createElement('div');
+    cell.id     = `cell-${id}`;
+    const s     = stations[id];
+    const st    = s ? (s.status||'idle') : 'closed';
+    cell.className = `disp-cell status-${st}`;
+    cell.innerHTML = buildCell(s, id);
+    disp.appendChild(cell);
+  });
+}
+
+function buildCell(s, id) {
+  if (!s) return `<div class="disp-cell-main"><p style="color:var(--closed)">מתחם לא נמצא</p></div>`;
+
+  const st    = s.status || 'idle';
+  const color = s.topicColor || 'var(--cyan)';
+  const now   = Date.now();
+  const dir   = directions[id] || null;
+
+  const header = `<div class="disp-name">${s.name}</div>
+    <div class="disp-topic" style="color:${color}">${s.topic||''}</div>`;
+
+  const label = `<div class="disp-label status-${st}">${STATUS[st].label}</div>`;
+
+  let mid = '';
+  if (st === 'idle') {
+    mid = `${header}<div class="disp-icon">⬜</div>${label}`;
+  } else if (st === 'boarding') {
+    mid = `${header}<div class="disp-icon">🟢</div>${label}
+      <div class="disp-boarding-msg">הכנסו עכשיו!</div>`;
+  } else if (st === 'running') {
+    const nxt = s.nextSessionTime ? `
+      <div class="disp-next">
+        <div class="disp-next-lbl">הסבב הבא ב-</div>
+        <div class="disp-next-time" id="next-${id}">${formatTime(s.nextSessionTime)}</div>
+        <div class="disp-next-rel"  id="rel-${id}">${formatTimeUntil(s.nextSessionTime)}</div>
+      </div>` : '';
+    mid = `${header}<div class="disp-icon">🔵</div>${label}${nxt}`;
+  } else if (st === 'setup') {
+    const nxt = s.nextSessionTime ? `
+      <div class="disp-next">
+        <div class="disp-next-lbl">הסבב הבא ב-</div>
+        <div class="disp-next-time" id="next-${id}">${formatTime(s.nextSessionTime)}</div>
+        <div class="disp-next-rel"  id="rel-${id}">${formatTimeUntil(s.nextSessionTime)}</div>
+      </div>` : '';
+    mid = `${header}<div class="disp-icon">🟡</div>${label}${nxt}`;
+  } else if (st === 'break') {
+    const secs = s.breakEndTime ? Math.max(0,Math.round((s.breakEndTime-now)/1000)) : 1800;
+    mid = `${header}<div class="disp-icon">☕</div>
+      <div class="disp-break">
+        <div class="disp-break-lbl">נחזור בעוד</div>
+        <div class="disp-break-timer" id="brk-${id}">${formatTimer(secs)}</div>
+      </div>`;
+  } else {
+    mid = `${header}<div class="disp-icon">🔴</div>${label}`;
+  }
+
+  const arrowHtml = dir
+    ? `<span class="disp-arrow" style="transform:rotate(${DIR_ROTATE[dir]}deg)">${DIR_ARROW[dir]}</span>`
+    : '';
+
+  const msgHtml = s.managerMessage && s.managerMessage.trim()
+    ? `<div class="disp-msg visible">📢 ${s.managerMessage}</div>` : '<div></div>';
+
+  return `
+    <div class="disp-cell-top">
+      <img src="logo.png" alt="טכנודע" class="disp-cell-logo">
+      <div class="disp-cell-event">טכנושף</div>
+    </div>
+    <div class="disp-cell-main">${mid}</div>
+    <div class="disp-cell-bottom">
+      <div class="disp-clock" id="clk-${id}">${new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</div>
+      ${msgHtml}
+      ${arrowHtml}
+    </div>`;
+}
+
+function tickDisplay() {
+  const now = Date.now();
+  selectedIds.forEach(id => {
+    const s = stations[id];
+    if (!s) return;
+    const st = s.status || 'idle';
+    const clkEl = document.getElementById(`clk-${id}`);
+    if (clkEl) clkEl.textContent = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    if (st === 'break' && s.breakEndTime) {
+      const el = document.getElementById(`brk-${id}`);
+      if (el) el.textContent = formatTimer(Math.max(0,Math.round((s.breakEndTime-now)/1000)));
+    }
+    if (s.nextSessionTime) {
+      const nEl = document.getElementById(`next-${id}`);
+      const rEl = document.getElementById(`rel-${id}`);
+      if (nEl) nEl.textContent = formatTime(s.nextSessionTime);
+      if (rEl) rEl.textContent = formatTimeUntil(s.nextSessionTime);
+    }
+  });
+}
+</script>
+</body>
+</html>

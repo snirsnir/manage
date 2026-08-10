@@ -4,10 +4,11 @@
 
 const STATUS = {
   idle:     { label: 'המתנה',              css: 'idle',     icon: '⬜' },
-  running:  { label: 'בפעילות',    css: 'running',  icon: '🟢' },
+  running:  { label: 'בפעילות',            css: 'running',  icon: '🟢' },
   setup:    { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
-  boarding: { label: 'קליטת קהל',              css: 'boarding', icon: '🔵' },
-  closed:   { label: 'סגור / תקלה',       css: 'closed',   icon: '🔴' }
+  boarding: { label: 'קליטת קהל',          css: 'boarding', icon: '🔵' },
+  closed:   { label: 'סגור / תקלה',        css: 'closed',   icon: '🔴' },
+  break:    { label: 'הפסקה',              css: 'break',    icon: '☕' }
 };
 
 const STATUS_COLORS = {
@@ -15,7 +16,8 @@ const STATUS_COLORS = {
   running:  '#00e676',   // ירוק
   setup:    '#ffc107',   // צהוב
   boarding: '#2196f3',   // כחול
-  closed:   '#f44336'
+  closed:   '#f44336',
+  break:    '#ff9800'    // כתום
 };
 
 // Format seconds → MM:SS
@@ -142,6 +144,9 @@ async function transitionStation(stationId, newStatus, station, extraData = {}) 
     const setupMs = (station.setupDuration || 7) * 60 * 1000;
     update.setupStartTime = now;
     update.setupEndTime   = now + setupMs;
+  } else if (newStatus === 'break') {
+    update.breakStartTime = now;
+    update.breakEndTime   = now + 30 * 60 * 1000;
   } else if (newStatus === 'idle' || newStatus === 'closed') {
     update.sessionStartTime = 0;
     update.sessionEndTime   = 0;
