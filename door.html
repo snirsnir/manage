@@ -95,8 +95,10 @@
     .picker-card.selected .picker-check { background: var(--cyan); border-color: var(--cyan); }
 
     .picker-dot  { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 12px; }
-    .picker-name { font-size: 1rem; font-weight: 800; color: var(--text-100); margin-bottom: 4px; line-height: 1.2; }
-    .picker-topic{ font-size: .92rem; font-weight: 600; color: var(--text-300); margin-bottom: 10px; }
+    .picker-name { font-size: .95rem; font-weight: 800; color: var(--text-100); margin-bottom: 4px; line-height: 1.2;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+    .picker-topic{ font-size: .82rem; font-weight: 600; color: var(--text-300); margin-bottom: 8px;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
 
     /* ════════════════════════════════
        STEP 2 — DIRECTION PICKER
@@ -403,24 +405,24 @@ const DIR_ARROW = {
 
 const DIR_ROTATE = {
   'up':         0,
-  'up-right':   135,   // 225 - 90
+  'up-right':   315,   // 135 + 180
   'right':      270,
-  'down-right': 45,    // 315 + 90
+  'down-right': 225,   // 45 + 180
   'down':       180,
-  'down-left':  135,   // 45 + 90
+  'down-left':  135,
   'left':       90,
-  'up-left':    45,    // 135 - 90
+  'up-left':    45,
 };
 
 const DIR_LABEL = {
   'up':         '↑',
-  'up-right':   '↘',   // 135°
+  'up-right':   '↖',   // 315°
   'right':      '←',
-  'down-right': '↗',   // 45°
+  'down-right': '↙',   // 225°
   'down':       '↓',
-  'down-left':  '↘',   // 135°
+  'down-left':  '↘',
   'left':       '→',
-  'up-left':    '↗',   // 45°
+  'up-left':    '↗',
 };
 
 // ── Firebase ──
