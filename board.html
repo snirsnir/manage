@@ -146,6 +146,10 @@
     .done-modal-btns { display: flex; gap: 12px; justify-content: center; }
     .done-modal-btns .btn { min-width: 120px; font-size: .95rem; }
 
+    /* ── Mobile-only elements: hidden on desktop ── */
+    .mobile-board-hdr { display: none; }
+    .mob-badge        { display: none; }
+
     /* ── Mobile ── */
     @media (max-width: 768px) {
       * { cursor: auto; }
@@ -159,49 +163,59 @@
       .board-title { font-size: 1.1rem; }
       .board-col-headers { display: none; }
 
-      /* Mobile column header bar */
+      /* Mobile column headers: ✓ | נושא/מתחם | זמן */
       .mobile-board-hdr {
         display: grid;
-        grid-template-columns: auto 1fr auto auto;
+        grid-template-columns: auto 1fr auto;
         column-gap: 8px;
         padding: 2px 14px 4px;
         font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
         color: var(--text-400);
       }
-      .mobile-board-hdr > span { text-align: center; }
+      .mobile-board-hdr > span:nth-child(1) { text-align: center; }
       .mobile-board-hdr > span:nth-child(2) { text-align: right; }
+      .mobile-board-hdr > span:nth-child(3) { text-align: left; }
 
-      /* Mobile portrait: [check] [topic / name] [status▕] [timer▕] */
-      /* check, status, timer span both rows (merged); topic+name split vertically */
+      /* Mobile portrait: [check] [topic (with inline badge) / name] [timer] */
       .board-rows .board-row {
         display: grid !important;
-        grid-template-columns: auto 1fr auto auto;
-        grid-template-rows: auto auto;
+        grid-template-columns: auto 1fr auto !important;
+        grid-template-rows: auto auto !important;
         grid-template-areas:
-          "check topic  status timer"
-          "check name   status timer";
-        row-gap: 1px;
+          "check topic timer"
+          "check name  timer" !important;
+        row-gap: 2px;
         column-gap: 8px;
       }
-      .board-rows .board-row > div:nth-child(1) { grid-area: name;   align-self: start; min-width: 0; overflow: hidden; order: 0; }
-      .board-rows .board-row > div:nth-child(2) { grid-area: topic;  align-self: end;   min-width: 0; overflow: hidden; }
-      .board-rows .board-row > div:nth-child(3) { grid-area: status; align-self: center; overflow: visible; }
-      .board-rows .board-row > div:nth-child(4) { grid-area: timer;  align-self: center; overflow: visible; white-space: nowrap; }
+      /* name = station */
+      .board-rows .board-row > div:nth-child(1) { grid-area: name;  align-self: start; min-width: 0; overflow: hidden; order: 0; }
+      /* topic = workshop topic (with inline mob-badge) */
+      .board-rows .board-row > div:nth-child(2) { grid-area: topic; align-self: end;   min-width: 0; overflow: hidden; }
+      /* status div: hidden — badge shown inline inside topic */
+      .board-rows .board-row > div:nth-child(3) { display: none; }
+      /* timer: at the left edge */
+      .board-rows .board-row > div:nth-child(4) { grid-area: timer; align-self: center; overflow: visible; text-align: left; }
+      /* next session: hidden */
       .board-rows .board-row > div:nth-child(5) { display: none; }
-      .board-rows .board-row > div:nth-child(6) { grid-area: check;  align-self: center; order: 0;
+      /* checkbox */
+      .board-rows .board-row > div:nth-child(6) { grid-area: check; align-self: center; order: 0;
         display: flex; align-items: center; justify-content: center; overflow: visible; }
 
-      /* Compact status badge on mobile: dot only, no label text */
-      .board-rows .board-row .badge { font-size: 0; padding: 4px; gap: 0; }
-      .board-rows .board-row .badge-dot { width: 13px; height: 13px; }
+      /* Inline status badge inside topic row */
+      .mob-badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        vertical-align: middle; margin-inline-start: 5px;
+        padding: 1px 6px 1px 4px; border-radius: 100px;
+        font-size: .68rem; font-weight: 700;
+        color: var(--text-100);
+      }
+      .mob-badge .badge-dot  { width: 7px; height: 7px; flex-shrink: 0; }
+      .mob-badge .badge-label { font-size: .68rem; }
 
-      .row-name  { font-size: .9rem;  font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
-      .row-topic { font-size: .72rem; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; opacity: .85; }
-      .row-time  { font-size: .92rem; white-space: nowrap; }
+      .row-name  { font-size: .88rem; font-weight: 800; white-space: normal; word-break: break-word; }
+      .row-topic { font-size: .78rem; font-weight: 700; white-space: normal; word-break: break-word; opacity: .9; }
+      .row-time  { font-size: .9rem;  white-space: nowrap; }
     }
-
-    /* Mobile header hidden on desktop */
-    .mobile-board-hdr { display: none; }
   </style>
 </head>
 <body>
@@ -249,7 +263,6 @@
   <div class="mobile-board-hdr">
     <span>✓</span>
     <span>נושא / מתחם</span>
-    <span>מצב</span>
     <span>זמן</span>
   </div>
 
@@ -433,7 +446,7 @@ function buildRow(s) {
     data-topic="${topicAttr}"
     style="grid-template-columns:54px 2fr 3fr 1.2fr 1.5fr 2fr;">
     <div class="row-name">${s.name}</div>
-    <div class="row-topic" style="color:${color}">${s.topic||'—'}</div>
+    <div class="row-topic" style="color:${color}">${s.topic||'—'}<span class="mob-badge badge badge--${st}"><span class="badge-dot"></span><span class="badge-label">${STATUS[st].label}</span></span></div>
     <div>${statusBadge(st)}</div>
     <div>${timerHtml}</div>
     <div>${nextHtml}</div>
