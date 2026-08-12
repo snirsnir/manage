@@ -300,6 +300,7 @@
     }
     #center-notif strong { font-weight: 900; display: block; font-size: 1.25em; margin-bottom: .25em; }
     #center-notif.hidden { display: none; }
+    #center-notif.left-side { left: clamp(24px,4vw,60px); transform: translateY(-50%); }
     @keyframes notif-blink {
       0%, 100% { opacity: 1; box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.4); }
       50%       { opacity: .3; box-shadow: 0 0 10px rgba(240,180,41,.2); }
@@ -685,6 +686,7 @@ function checkSameTopicNotifs() {
     const timeStr = secs <= 60 ? 'פחות מדקה' : `${mins} דקות`;
     el.innerHTML = `🔔 <strong>מעבדת ${match.soon.name}</strong> עם פעילות זהה מתפנה בעוד ${timeStr}<br>מוזמנים להגיע לשם`;
     el.classList.remove('hidden');
+    el.classList.toggle('left-side', selectedIds.length === 1);
   } else {
     el.classList.add('hidden');
   }
