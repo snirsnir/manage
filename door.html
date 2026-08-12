@@ -283,19 +283,23 @@
       display: inline-block; transition: transform .3s;
     }
 
-    /* Same-topic floating notification */
-    .disp-cell > .same-topic-notif {
-      position: absolute !important; top: 10px; left: 50%; transform: translateX(-50%);
-      background: rgba(240,180,41,.92); color: #000;
-      border-radius: 100px; padding: clamp(4px,.8vw,8px) clamp(12px,2.5vw,28px);
-      font-size: clamp(.5rem,1.1vw,.95rem); font-weight: 800;
-      z-index: 10 !important; white-space: nowrap;
-      display: none; animation: notif-drop .4s ease;
+    /* Same-topic center notification */
+    #center-notif {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(240,180,41,.96); color: #000;
+      border-radius: 20px;
+      padding: clamp(14px,2.5vw,28px) clamp(28px,5vw,64px);
+      font-size: clamp(1rem,2.5vw,2rem); font-weight: 900;
+      z-index: 1000; text-align: center; white-space: nowrap;
+      box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.35);
+      animation: notif-blink 1s ease-in-out infinite;
+      pointer-events: none;
     }
-    .disp-cell > .same-topic-notif.visible { display: block; }
-    @keyframes notif-drop {
-      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #center-notif.hidden { display: none; }
+    @keyframes notif-blink {
+      0%, 100% { opacity: 1; box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.35); }
+      50%       { opacity: .35; box-shadow: none; }
     }
     .disp-msg {
       background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.4);
@@ -371,6 +375,7 @@
 <div id="display" class="hidden" data-count="1">
   <button class="disp-back" onclick="goToStep1()">← חזרה לבחירה</button>
 </div>
+<div id="center-notif" class="hidden"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -505,6 +510,7 @@ function goToStep1() {
   inDisplay = false;
   clearInterval(clockInt);
   document.getElementById('display').classList.add('hidden');
+  document.getElementById('center-notif').classList.add('hidden');
   document.getElementById('step2').classList.add('hidden');
   document.getElementById('step1').classList.remove('hidden');
   renderPicker();
@@ -636,7 +642,6 @@ function buildCell(s, id) {
     ? `<div class="disp-msg visible">📢 ${s.managerMessage}</div>` : '<div></div>';
 
   return `
-    <div class="same-topic-notif" id="notif-${id}"></div>
     <div class="disp-cell-top">
       <img src="logo.png" alt="טכנודע" class="disp-cell-logo">
       <div class="disp-cell-event">טכנושף</div>
@@ -652,11 +657,13 @@ function buildCell(s, id) {
 function checkSameTopicNotifs() {
   const now = Date.now();
   const THREE_MIN = 3 * 60 * 1000;
-  selectedIds.forEach(id => {
+  const el = document.getElementById('center-notif');
+  if (!el) return;
+
+  let match = null;
+  for (const id of selectedIds) {
     const displayed = stations[id];
-    const el = document.getElementById(`notif-${id}`);
-    if (!el || !displayed || !displayed.topic) { if (el) el.classList.remove('visible'); return; }
-    // Trigger when another running station (same topic, not displayed) has < 3 min left in current session
+    if (!displayed || !displayed.topic) continue;
     const soon = Object.values(stations).find(other =>
       other.id !== id &&
       !selectedIds.includes(other.id) &&
@@ -666,15 +673,17 @@ function checkSameTopicNotifs() {
       other.sessionEndTime > now &&
       other.sessionEndTime - now < THREE_MIN
     );
-    if (soon) {
-      const secs = Math.ceil((soon.sessionEndTime - now) / 1000);
-      const timeStr = secs <= 60 ? 'פחות מדקה' : `${Math.ceil(secs / 60)} דק׳`;
-      el.textContent = `🔔 הסבב ב${soon.name} מסתיים בעוד ${timeStr} — הסבב הבא מתחיל בקרוב!`;
-      if (!el.classList.contains('visible')) el.classList.add('visible');
-    } else {
-      el.classList.remove('visible');
-    }
-  });
+    if (soon) { match = { displayed, soon }; break; }
+  }
+
+  if (match) {
+    const secs = Math.ceil((match.soon.sessionEndTime - now) / 1000);
+    const timeStr = secs <= 60 ? 'פחות מדקה' : `${Math.ceil(secs / 60)} דק׳`;
+    el.textContent = `🔔 הסבב ב${match.soon.name} מסתיים בעוד ${timeStr} — הסבב הבא מתחיל בקרוב!`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
 }
 
 function tickDisplay() {
