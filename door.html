@@ -656,18 +656,20 @@ function checkSameTopicNotifs() {
     const displayed = stations[id];
     const el = document.getElementById(`notif-${id}`);
     if (!el || !displayed || !displayed.topic) { if (el) el.classList.remove('visible'); return; }
+    // Trigger when another running station (same topic, not displayed) has < 3 min left in current session
     const soon = Object.values(stations).find(other =>
       other.id !== id &&
       !selectedIds.includes(other.id) &&
       other.topic === displayed.topic &&
-      other.nextSessionTime &&
-      other.nextSessionTime > now &&
-      other.nextSessionTime - now < THREE_MIN
+      other.status === 'running' &&
+      other.sessionEndTime &&
+      other.sessionEndTime > now &&
+      other.sessionEndTime - now < THREE_MIN
     );
     if (soon) {
-      const mins = Math.ceil((soon.nextSessionTime - now) / 60000);
-      const timeStr = mins <= 1 ? 'עכשיו' : `בעוד ${mins} דק׳`;
-      el.textContent = `🔔 ${displayed.topic} מתחיל ${timeStr} גם ב${soon.name}!`;
+      const secs = Math.ceil((soon.sessionEndTime - now) / 1000);
+      const timeStr = secs <= 60 ? 'פחות מדקה' : `${Math.ceil(secs / 60)} דק׳`;
+      el.textContent = `🔔 הסבב ב${soon.name} מסתיים בעוד ${timeStr} — הסבב הבא מתחיל בקרוב!`;
       if (!el.classList.contains('visible')) el.classList.add('visible');
     } else {
       el.classList.remove('visible');
