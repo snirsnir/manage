@@ -270,8 +270,23 @@
     }
     .disp-arrow {
       font-size: clamp(2.8rem,7vw,7rem); line-height: 1;
-      color: rgba(255,255,255,.85); filter: drop-shadow(0 0 12px rgba(255,255,255,.4));
+      color: var(--text-100); filter: drop-shadow(0 0 10px var(--text-400));
       display: inline-block; transition: transform .3s;
+    }
+
+    /* Same-topic floating notification */
+    .disp-cell > .same-topic-notif {
+      position: absolute !important; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(240,180,41,.92); color: #000;
+      border-radius: 100px; padding: clamp(4px,.8vw,8px) clamp(12px,2.5vw,28px);
+      font-size: clamp(.5rem,1.1vw,.95rem); font-weight: 800;
+      z-index: 10 !important; white-space: nowrap;
+      display: none; animation: notif-drop .4s ease;
+    }
+    .disp-cell > .same-topic-notif.visible { display: block; }
+    @keyframes notif-drop {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
     .disp-msg {
       background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.4);
@@ -313,7 +328,7 @@
 <div id="step1" class="step-screen">
   <img src="logo.png" alt="טכנודע" class="step-logo">
   <div class="step-title">מסך קהל</div>
-  <div class="step-sub">בחר עד 4 מעבדות להצגה</div>
+  <div class="step-sub">צרו תצוגות לטלוויזיות מעל המעבדות — בחרו עד 4 מתחמים להצגה</div>
   <div class="step-bar">
     <div class="step-dot active" id="dot1"></div>
     <div class="step-dot"        id="dot2"></div>
@@ -382,24 +397,24 @@ const DIR_ARROW = {
 
 const DIR_ROTATE = {
   'up':         0,
-  'up-right':   45,
-  'right':      90,
-  'down-right': 135,
+  'up-right':   225,
+  'right':      270,
+  'down-right': 315,
   'down':       180,
-  'down-left':  225,
-  'left':       270,
-  'up-left':    315,
+  'down-left':  45,
+  'left':       90,
+  'up-left':    135,
 };
 
 const DIR_LABEL = {
   'up':         '↑',
-  'up-right':   '↗',
-  'right':      '→',
-  'down-right': '↘',
+  'up-right':   '↙',
+  'right':      '←',
+  'down-right': '↖',
   'down':       '↓',
-  'down-left':  '↙',
-  'left':       '←',
-  'up-left':    '↖',
+  'down-left':  '↗',
+  'left':       '→',
+  'up-left':    '↘',
 };
 
 // ── Firebase ──
@@ -612,6 +627,7 @@ function buildCell(s, id) {
     ? `<div class="disp-msg visible">📢 ${s.managerMessage}</div>` : '<div></div>';
 
   return `
+    <div class="same-topic-notif" id="notif-${id}"></div>
     <div class="disp-cell-top">
       <img src="logo.png" alt="טכנודע" class="disp-cell-logo">
       <div class="disp-cell-event">טכנושף</div>
@@ -622,6 +638,32 @@ function buildCell(s, id) {
       ${msgHtml}
       ${arrowHtml}
     </div>`;
+}
+
+function checkSameTopicNotifs() {
+  const now = Date.now();
+  const THREE_MIN = 3 * 60 * 1000;
+  selectedIds.forEach(id => {
+    const displayed = stations[id];
+    const el = document.getElementById(`notif-${id}`);
+    if (!el || !displayed || !displayed.topic) { if (el) el.classList.remove('visible'); return; }
+    const soon = Object.values(stations).find(other =>
+      other.id !== id &&
+      !selectedIds.includes(other.id) &&
+      other.topic === displayed.topic &&
+      other.nextSessionTime &&
+      other.nextSessionTime > now &&
+      other.nextSessionTime - now < THREE_MIN
+    );
+    if (soon) {
+      const mins = Math.ceil((soon.nextSessionTime - now) / 60000);
+      const timeStr = mins <= 1 ? 'עכשיו' : `בעוד ${mins} דק׳`;
+      el.textContent = `🔔 ${displayed.topic} מתחיל ${timeStr} גם ב${soon.name}!`;
+      if (!el.classList.contains('visible')) el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  });
 }
 
 function tickDisplay() {
@@ -643,6 +685,7 @@ function tickDisplay() {
       if (rEl) rEl.textContent = formatTimeUntil(s.nextSessionTime);
     }
   });
+  checkSameTopicNotifs();
 }
 </script>
 </body>
