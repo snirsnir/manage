@@ -288,18 +288,21 @@
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(240,180,41,.96); color: #000;
-      border-radius: 20px;
-      padding: clamp(14px,2.5vw,28px) clamp(28px,5vw,64px);
-      font-size: clamp(1rem,2.5vw,2rem); font-weight: 900;
-      z-index: 1000; text-align: center; white-space: nowrap;
-      box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.35);
+      border-radius: 12px;
+      width: clamp(240px, 36vw, 480px);
+      padding: clamp(22px,3.5vw,44px);
+      font-size: clamp(.95rem,2vw,1.7rem); font-weight: 800;
+      line-height: 1.5; text-align: center;
+      z-index: 1000;
+      box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.4);
       animation: notif-blink 1s ease-in-out infinite;
       pointer-events: none;
     }
+    #center-notif strong { font-weight: 900; display: block; font-size: 1.25em; margin-bottom: .25em; }
     #center-notif.hidden { display: none; }
     @keyframes notif-blink {
-      0%, 100% { opacity: 1; box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.35); }
-      50%       { opacity: .35; box-shadow: none; }
+      0%, 100% { opacity: 1; box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.4); }
+      50%       { opacity: .3; box-shadow: 0 0 10px rgba(240,180,41,.2); }
     }
     .disp-msg {
       background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.4);
@@ -678,8 +681,9 @@ function checkSameTopicNotifs() {
 
   if (match) {
     const secs = Math.ceil((match.soon.sessionEndTime - now) / 1000);
-    const timeStr = secs <= 60 ? 'פחות מדקה' : `${Math.ceil(secs / 60)} דק׳`;
-    el.textContent = `🔔 הסבב ב${match.soon.name} מסתיים בעוד ${timeStr} — הסבב הבא מתחיל בקרוב!`;
+    const mins = Math.ceil(secs / 60);
+    const timeStr = secs <= 60 ? 'פחות מדקה' : `${mins} דקות`;
+    el.innerHTML = `🔔 <strong>מעבדת ${match.soon.name}</strong> עם פעילות זהה מתפנה בעוד ${timeStr}<br>מוזמנים להגיע לשם`;
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
