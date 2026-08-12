@@ -28,7 +28,9 @@
       -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .board-subtitle { font-size:.75rem; color:var(--text-400); }
     .board-clock  { font-family:var(--font-display); font-size:2.2rem; font-weight:700;
-                    color:var(--cyan); text-shadow:0 0 14px rgba(240,180,41,.4); letter-spacing:3px; }
+                    color:var(--cyan); text-shadow:0 0 14px rgba(240,180,41,.4); letter-spacing:3px;
+                    font-variant-numeric: tabular-nums; direction: ltr;
+                    min-width: 9rem; text-align: center; }
 
     /* Divider */
     .board-divider {
@@ -110,15 +112,26 @@
       .board-layout { height: auto; min-height: 100dvh; padding: 12px 16px 16px; gap: 8px; }
       .board-rows { overflow: visible; flex: none; display: flex; flex-direction: column; gap: 6px; }
       .board-rows > .board-row { flex: none; padding: 10px 14px; min-height: 52px; }
-      .board-clock { font-size: 1.5rem; letter-spacing: 1px; }
+      .board-clock { font-size: 1.5rem; letter-spacing: 1px; min-width: auto; }
       .board-logo  { height: 32px; }
       .board-title { font-size: 1.1rem; }
       .board-col-headers { display: none; }
-      /* 3 columns on mobile: name | status | timer */
-      .board-rows .board-row { grid-template-columns: 1fr auto auto !important; }
-      .board-rows .board-row > div:nth-child(2) { display: none; }
-      .board-rows .board-row > div:nth-child(5) { display: none; }
-      .row-name  { font-size: .9rem; }
+
+      /* Mobile row: flex so [name][status] are adjacent, timer on the left */
+      .board-rows .board-row {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+      }
+      .board-rows .board-row > div:nth-child(1) { /* name */
+        flex: 0 1 auto; min-width: 0; max-width: 50%; overflow: hidden;
+      }
+      .board-rows .board-row > div:nth-child(2) { display: none; } /* topic */
+      .board-rows .board-row > div:nth-child(3) { flex: 0 0 auto; } /* status */
+      .board-rows .board-row > div:nth-child(4) { flex: 1; text-align: left; } /* timer */
+      .board-rows .board-row > div:nth-child(5) { display: none; } /* next */
+
+      .row-name  { font-size: .9rem; white-space: nowrap; text-overflow: ellipsis; }
       .row-time  { font-size: 1rem; }
     }
   </style>
