@@ -231,13 +231,9 @@
       .board-rows .board-row > div:nth-child(6) { grid-area: check;  align-self: center; order: 0;
         display: flex; align-items: center; justify-content: center; overflow: visible; }
 
-      /* Status badge on mobile: vertical stack (dot + text), similar weight to timer */
-      .board-rows .board-row .badge {
-        display: flex; flex-direction: column; align-items: center; gap: 4px;
-        padding: 2px 4px; background: transparent; border: none; box-shadow: none;
-      }
-      .board-rows .board-row .badge-dot   { width: 14px; height: 14px; border-radius: 50%; }
-      .board-rows .board-row .badge-label { font-size: .72rem; font-weight: 700; color: var(--text-100); white-space: nowrap; }
+      /* Status badge on mobile: pill (same as desktop), slightly compact */
+      .board-rows .board-row .badge { font-size: .75rem; padding: 5px 10px; white-space: nowrap; }
+      .board-rows .board-row .badge-dot { width: 9px; height: 9px; }
 
       .row-name  { font-size: .88rem; font-weight: 800; white-space: normal; word-break: break-word; }
       .row-topic { font-size: .78rem; font-weight: 700; white-space: normal; word-break: break-word; opacity: .9; }
@@ -545,7 +541,7 @@ function buildRow(s) {
     data-topic="${topicAttr}"
     style="grid-template-columns:54px 2fr 3fr 1.2fr 1.5fr 2fr;">
     <div class="row-name">${s.name}</div>
-    <div class="row-topic" style="color:${color}">${s.topic||'—'}<span class="mob-badge badge badge--${st}"><span class="badge-dot"></span><span class="badge-label">${STATUS[st].label}</span></span></div>
+    <div class="row-topic" style="color:${color}">${s.topic||'—'}</div>
     <div>${statusBadge(st)}</div>
     <div>${timerHtml}</div>
     <div>${nextHtml}</div>
