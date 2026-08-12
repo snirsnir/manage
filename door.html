@@ -57,10 +57,11 @@
       background: var(--glass);
       border: 3px solid var(--glass-border);
       border-radius: var(--r-lg); padding: 20px 16px 16px;
-      cursor: pointer; position: relative; overflow: hidden;
+      cursor: pointer; position: relative;
+      clip-path: inset(0 round var(--r-lg));
       transition: border-color .2s, background .2s, transform .12s, box-shadow .2s;
       user-select: none; -webkit-tap-highlight-color: transparent;
-      text-align: center;
+      text-align: center; align-self: start;
     }
     .picker-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
@@ -405,9 +406,9 @@ const DIR_ARROW = {
 
 const DIR_ROTATE = {
   'up':         0,
-  'up-right':   315,   // 135 + 180
+  'up-right':   135,
   'right':      270,
-  'down-right': 225,   // 45 + 180
+  'down-right': 45,
   'down':       180,
   'down-left':  135,
   'left':       90,
@@ -416,9 +417,9 @@ const DIR_ROTATE = {
 
 const DIR_LABEL = {
   'up':         '↑',
-  'up-right':   '↖',   // 315°
+  'up-right':   '↘',   // 135°
   'right':      '←',
-  'down-right': '↙',   // 225°
+  'down-right': '↗',   // 45°
   'down':       '↓',
   'down-left':  '↘',
   'left':       '→',
