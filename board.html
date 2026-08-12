@@ -202,7 +202,7 @@
       /* Per-floor column headers (injected after each floor-section-header in JS) */
       .mobile-floor-hdr {
         display: grid !important;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto auto;
         column-gap: 8px;
         padding: 1px 14px 4px;
         font-size: .58rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
@@ -210,42 +210,36 @@
       }
       .mobile-floor-hdr > span:nth-child(1) { text-align: center; }
       .mobile-floor-hdr > span:nth-child(2) { text-align: right; }
-      .mobile-floor-hdr > span:nth-child(3) { text-align: left; }
+      .mobile-floor-hdr > span:nth-child(3) { text-align: center; }
+      .mobile-floor-hdr > span:nth-child(4) { text-align: left; }
 
-      /* Mobile portrait: [check] [topic+name with inline mob-badge] [timer] */
+      /* Mobile portrait: [check] [topic/name — max-content] [status merged] [timer] */
+      /* max-content makes the text column exactly as wide as the longer string,
+         so the status badge starts right where that string ends */
       .board-rows .board-row {
         display: grid !important;
-        grid-template-columns: auto 1fr auto !important;
+        grid-template-columns: auto max-content auto auto !important;
         grid-template-rows: auto auto !important;
         grid-template-areas:
-          "check topic timer"
-          "check name  timer" !important;
+          "check topic status timer"
+          "check name  status timer" !important;
         row-gap: 2px;
         column-gap: 8px;
       }
-      .board-rows .board-row > div:nth-child(1) { grid-area: name;  align-self: start; min-width: 0; overflow: hidden; order: 0; }
-      .board-rows .board-row > div:nth-child(2) { grid-area: topic; align-self: end;   min-width: 0; overflow: hidden;
-        display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; }
-      .board-rows .board-row > div:nth-child(3) { display: none !important; } /* status col hidden — shown inline via mob-badge */
-      .board-rows .board-row > div:nth-child(4) { grid-area: timer; align-self: center; overflow: visible; text-align: left; }
+      .board-rows .board-row > div:nth-child(1) { grid-area: name;   align-self: start; order: 0; }
+      .board-rows .board-row > div:nth-child(2) { grid-area: topic;  align-self: end; }
+      .board-rows .board-row > div:nth-child(3) { grid-area: status; align-self: center; justify-self: center; overflow: visible; }
+      .board-rows .board-row > div:nth-child(4) { grid-area: timer;  align-self: center; justify-self: end;    overflow: visible; }
       .board-rows .board-row > div:nth-child(5) { display: none; }
-      .board-rows .board-row > div:nth-child(6) { grid-area: check; align-self: center; order: 0;
+      .board-rows .board-row > div:nth-child(6) { grid-area: check;  align-self: center; justify-self: center; order: 0;
         display: flex; align-items: center; justify-content: center; overflow: visible; }
 
-      /* name div also needs flex for mob-badge when name is longer */
-      .board-rows .board-row > div:nth-child(1).has-badge {
-        display: flex; align-items: center; flex-wrap: nowrap; gap: 6px;
-      }
+      /* Status badge on mobile: compact pill, same look as desktop */
+      .board-rows .board-row .badge { font-size: .72rem; padding: 4px 9px; white-space: nowrap; }
+      .board-rows .board-row .badge-dot { width: 8px; height: 8px; }
 
-      /* Inline mob-badge on mobile: pill styled by badge--{status} class */
-      .mob-badge { display: inline-flex; align-items: center; gap: 4px;
-        vertical-align: middle; flex-shrink: 0;
-        font-size: .72rem; padding: 4px 9px; }
-      .mob-badge .badge-dot   { width: 8px; height: 8px; flex-shrink: 0; }
-      .mob-badge .badge-label { font-size: .72rem; white-space: nowrap; }
-
-      .row-name  { font-size: .88rem; font-weight: 800; white-space: normal; word-break: break-word; flex: 1; min-width: 0; }
-      .row-topic { font-size: .78rem; font-weight: 700; white-space: normal; word-break: break-word; opacity: .9; flex: 1; min-width: 0; }
+      .row-name  { font-size: .88rem; font-weight: 800; white-space: nowrap; }
+      .row-topic { font-size: .78rem; font-weight: 700; white-space: nowrap; opacity: .9; }
       .row-time  { font-size: .9rem;  white-space: nowrap; }
     }
   </style>
@@ -499,7 +493,7 @@ function renderBoard() {
   }
 
   const groups = groupByFloor(list);
-  const floorHdr = `<div class="mobile-floor-hdr"><span>היינו כבר</span><span>נושא / מתחם</span><span>זמן</span></div>`;
+  const floorHdr = `<div class="mobile-floor-hdr"><span>היינו כבר</span><span>נושא / מתחם</span><span>מצב</span><span>זמן</span></div>`;
   rows.innerHTML = groups.map(g =>
     `<div class="floor-section-header">${g.label}</div>` +
     floorHdr +
@@ -546,15 +540,13 @@ function buildRow(s) {
     </span>`;
   }
 
-  const topicAttr  = (s.topic||'').replace(/"/g,'&quot;');
-  const isChecked  = doneTopics.has(s.topic||'') ? 'checked' : '';
-  const topicLonger = (s.topic||'').length >= (s.name||'').length;
-  const mobBadge   = `<span class="mob-badge badge badge--${st}"><span class="badge-dot"></span><span class="badge-label">${STATUS[st].label}</span></span>`;
+  const topicAttr = (s.topic||'').replace(/"/g,'&quot;');
+  const isChecked = doneTopics.has(s.topic||'') ? 'checked' : '';
   return `<div class="board-row status-${st}" id="row-${s.id}"
     data-topic="${topicAttr}"
     style="grid-template-columns:54px 2fr 3fr 1.2fr 1.5fr 2fr;">
-    <div class="row-name${topicLonger ? '' : ' has-badge'}">${s.name}${topicLonger ? '' : mobBadge}</div>
-    <div class="row-topic" style="color:${color}">${s.topic||'—'}${topicLonger ? mobBadge : ''}</div>
+    <div class="row-name">${s.name}</div>
+    <div class="row-topic" style="color:${color}">${s.topic||'—'}</div>
     <div>${statusBadge(st)}</div>
     <div>${timerHtml}</div>
     <div>${nextHtml}</div>
