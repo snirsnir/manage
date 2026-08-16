@@ -547,6 +547,8 @@ stationsRef().on('value', snap => {
   }
 });
 
+startAutoTransitionWatcher(() => stations);
+
 function updateSummary() {
   const counts = { idle:0, boarding:0, running:0, setup:0, closed:0, break:0 };
   Object.values(stations).forEach(s => {

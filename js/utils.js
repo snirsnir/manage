@@ -193,6 +193,44 @@ async function copyToClipboard(text, successMsg = 'הועתק!') {
   }
 }
 
+// ── Auto-transition watcher ──
+// Call once per management page: startAutoTransitionWatcher(() => stations)
+// Checks every 4s; fires transitionStation when a timer expires.
+// Firebase re-read before writing prevents double-writes if multiple tabs are open.
+const _autoWatchLocks = new Set();
+
+function startAutoTransitionWatcher(getStations) {
+  setInterval(async () => {
+    const now  = Date.now();
+    const stns = typeof getStations === 'function' ? getStations() : getStations;
+    if (!stns) return;
+
+    for (const [id, s] of Object.entries(stns)) {
+      if (_autoWatchLocks.has(id)) continue;
+
+      let next = null;
+      if      (s.status === 'running'  && s.sessionEndTime  > 0 && now >= s.sessionEndTime)  next = 'setup';
+      else if (s.status === 'setup'    && s.setupEndTime    > 0 && now >= s.setupEndTime)    next = 'boarding';
+      else if (s.status === 'boarding' && s.boardingEndTime > 0 && now >= s.boardingEndTime) next = 'idle';
+      if (!next) continue;
+
+      _autoWatchLocks.add(id);
+      try {
+        // Re-read from Firebase to verify status hasn't already changed (e.g. via remote.html)
+        const snap  = await stationRef(id).once('value');
+        const fresh = snap.val();
+        if (fresh && fresh.status === s.status) {
+          await transitionStation(id, next, fresh, { auto: true });
+        }
+      } catch (e) {
+        console.warn('[AutoTransition]', id, e.message);
+      } finally {
+        _autoWatchLocks.delete(id);
+      }
+    }
+  }, 4000); // every 4s — remote.html grace is 3s so it gets priority when open
+}
+
 // Default station template
 function defaultStation(id, name, order) {
   return {

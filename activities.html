@@ -575,6 +575,8 @@ stationsRef().on('value', snap => {
   }
 });
 
+startAutoTransitionWatcher(() => stations);
+
 // ── Grid ──
 function groupByFloor(list) {
   const order  = ['lower','upper'];
