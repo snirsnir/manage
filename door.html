@@ -45,6 +45,49 @@
       border-radius: 100px; padding: 3px 12px; margin-bottom: 10px; flex-shrink: 0;
     }
 
+    /* ── Ready-made presets ── */
+    .preset-heading {
+      font-size: .72rem; font-weight: 700; color: var(--text-400);
+      letter-spacing: .07em; align-self: flex-start; margin-bottom: 6px; flex-shrink: 0;
+    }
+    .preset-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px; width: 100%; margin-bottom: 14px; flex-shrink: 0;
+    }
+    .preset-card {
+      background: rgba(240,180,41,.07);
+      border: 2px solid rgba(240,180,41,.28);
+      border-radius: var(--r-lg); padding: 11px 13px 9px;
+      display: flex; flex-direction: column; gap: 7px;
+      cursor: pointer; text-align: right;
+      transition: border-color .2s, background .2s, transform .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .preset-card:hover  { border-color: var(--cyan); background: rgba(240,180,41,.13); }
+    .preset-card:active { transform: scale(.97); }
+    .preset-title { font-size: .9rem; font-weight: 800; color: var(--text-100); }
+    .preset-labs  { display: flex; flex-direction: column; gap: 3px; font-size: .76rem; color: var(--text-300); }
+    .preset-labs > span { display: flex; align-items: center; gap: 6px; }
+    .preset-labs .pv { font-size: 1.05rem; color: var(--cyan); line-height: 1; }
+    .preset-copy {
+      font-size: .7rem; font-weight: 700; align-self: flex-start;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: var(--text-300); border-radius: 100px; padding: 4px 12px; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .preset-copy:hover { background: rgba(255,255,255,.18); color: var(--text-100); }
+
+    .disp-copy {
+      position: fixed; bottom: 62px; right: 16px; z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.18);
+      color: var(--text-300); font-size: .82rem; font-weight: 600;
+      padding: 10px 18px; border-radius: 100px; cursor: pointer;
+      transition: background .2s, opacity .2s; opacity: .55;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .disp-copy:hover { opacity: 1; background: rgba(0,0,0,.9); }
+
     .picker-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
@@ -350,6 +393,8 @@
     <div class="step-dot active" id="dot1"></div>
     <div class="step-dot"        id="dot2"></div>
   </div>
+  <div class="preset-heading" id="preset-heading" style="display:none">⚡ תצוגות מוכנות — לחיצה אחת</div>
+  <div class="preset-row" id="preset-row"></div>
   <div class="pick-count" id="pick-count">0 / 4 נבחרו</div>
   <div class="picker-grid" id="picker-grid">
     <div style="grid-column:1/-1"><div class="loading"><div class="spinner"></div></div></div>
@@ -378,6 +423,7 @@
 <!-- ════ STEP 3: DISPLAY ════ -->
 <div id="display" class="hidden" data-count="1">
   <button class="disp-back" onclick="goToStep1()">← חזרה לבחירה</button>
+  <button class="disp-copy" id="disp-copy" onclick="copyCurrentLink()">🔗 העתק קישור לטלוויזיה</button>
 </div>
 <div id="center-notif" class="hidden"></div>
 
@@ -435,6 +481,15 @@ const DIR_LABEL = {
   'up-left':    '↗',
 };
 
+// ── Preset direction keys ──
+// The dpad keys are named for their POSITION in the RTL grid, not for the way
+// the arrow points: 'left' renders ▲ rotated 90° (points right) and 'right'
+// renders it rotated 270° (points left). Alias them by what the viewer sees.
+const POINTS_RIGHT = 'left';
+const POINTS_LEFT  = 'right';
+
+let deepLinkDone = false;
+
 // ── Firebase ──
 stationsRef().on('value', snap => {
   stations = {};
@@ -442,9 +497,99 @@ stationsRef().on('value', snap => {
     const v = c.val();
     if (v && v.id && v.enabled !== false) stations[v.id] = v;
   });
+
+  // A ?stations=... link opens straight into the display (TV / kiosk mode)
+  if (!deepLinkDone && Object.keys(stations).length) {
+    deepLinkDone = true;
+    if (applyDeepLink()) return;
+  }
+
   if (inDisplay) renderDisplay();
-  else renderPicker();
+  else { renderPicker(); renderPresets(); }
 });
+
+// ════════════════════════════════
+// PRESETS + SHARE LINKS
+// ════════════════════════════════
+
+// Stations sorted by their configured order, chunked into consecutive pairs.
+// Within a pair the first lab points right, the second points left.
+function getPresets() {
+  const list = Object.values(stations).sort((a,b) => (a.order||0)-(b.order||0));
+  const out  = [];
+  for (let i = 0; i + 1 < list.length; i += 2) {
+    const a = list[i], b = list[i+1];
+    out.push({
+      ids:  [a.id, b.id],
+      dirs: { [a.id]: POINTS_RIGHT, [b.id]: POINTS_LEFT },
+      labs: [a, b]
+    });
+  }
+  return out;
+}
+
+function buildShareUrl(ids, dirs) {
+  const qs = new URLSearchParams({
+    stations: ids.join(','),
+    dirs:     ids.map(id => dirs[id] || 'down').join(',')
+  });
+  return location.origin + location.pathname + '?' + qs;
+}
+
+function renderPresets() {
+  const row  = document.getElementById('preset-row');
+  const head = document.getElementById('preset-heading');
+  if (!row) return;
+  const presets = getPresets();
+  head.style.display = presets.length ? '' : 'none';
+
+  row.innerHTML = presets.map((p, i) => {
+    const [a, b] = p.labs;
+    return `<div class="preset-card" onclick="applyPreset(${i})">
+      <div class="preset-title">${a.name} + ${b.name}</div>
+      <div class="preset-labs">
+        <span><span class="pv">→</span> ${a.name}</span>
+        <span><span class="pv">←</span> ${b.name}</span>
+      </div>
+      <button class="preset-copy" onclick="event.stopPropagation();copyPresetLink(${i})">🔗 העתק קישור</button>
+    </div>`;
+  }).join('');
+}
+
+function applyPreset(i) {
+  const p = getPresets()[i];
+  if (!p) return;
+  selectedIds = [...p.ids];
+  directions  = { ...p.dirs };
+  showDisplay();
+}
+
+function copyPresetLink(i) {
+  const p = getPresets()[i];
+  if (!p) return;
+  copyToClipboard(buildShareUrl(p.ids, p.dirs), 'הקישור הועתק — הדביקו בטלוויזיה');
+}
+
+function copyCurrentLink() {
+  if (!selectedIds.length) return;
+  copyToClipboard(buildShareUrl(selectedIds, directions), 'הקישור הועתק — הדביקו בטלוויזיה');
+}
+
+// Reads ?stations=id1,id2&dirs=left,right and opens the display directly.
+function applyDeepLink() {
+  const ids = (getParam('stations')||'').split(',').map(s => s.trim()).filter(Boolean);
+  if (!ids.length) return false;
+  const valid = ids.filter(id => stations[id]).slice(0, 4);
+  if (!valid.length) return false;
+
+  const dirs = (getParam('dirs')||'').split(',').map(s => s.trim());
+  selectedIds = valid;
+  directions  = {};
+  valid.forEach((id, i) => { directions[id] = DIR_ROTATE[dirs[i]] !== undefined ? dirs[i] : 'down'; });
+
+  showDisplay();
+  return true;
+}
 
 // ════════════════════════════════
 // STEP 1 — PICKER
@@ -513,11 +658,13 @@ function goToStep2() {
 function goToStep1() {
   inDisplay = false;
   clearInterval(clockInt);
+  history.replaceState(null, '', location.pathname);
   document.getElementById('display').classList.add('hidden');
   document.getElementById('center-notif').classList.add('hidden');
   document.getElementById('step2').classList.add('hidden');
   document.getElementById('step1').classList.remove('hidden');
   renderPicker();
+  renderPresets();
 }
 
 function renderDirList() {
@@ -567,6 +714,9 @@ function setDir(id, dir) {
 function showDisplay() {
   if (!selectedIds.length) return;
   inDisplay = true;
+  // Keep the address bar in sync so the URL itself is the shareable TV link
+  history.replaceState(null, '', buildShareUrl(selectedIds, directions));
+  document.getElementById('step1').classList.add('hidden');
   document.getElementById('step2').classList.add('hidden');
   const disp = document.getElementById('display');
   disp.classList.remove('hidden');
