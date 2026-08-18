@@ -143,6 +143,22 @@
     }
     .detail-adjust-btn:active { background: rgba(255,255,255,.18); transform: scale(.95); }
 
+    /* Secondary state actions under the main button */
+    .detail-actions-row {
+      display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 14px;
+    }
+    .detail-sec-btn {
+      padding: 10px 20px; border-radius: 100px; font-size: .85rem; font-weight: 700;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+      color: var(--text-300); cursor: pointer; white-space: nowrap;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-sec-btn:active { transform: scale(.95); }
+    .detail-sec-btn--break  { background: rgba(255,152,0,.1);  border-color: rgba(255,152,0,.3);  color: #ffcc80; }
+    .detail-sec-btn--closed { background: rgba(244,67,54,.08); border-color: rgba(244,67,54,.28); color: #ef9a9a; }
+    .detail-sec-btn--back   { background: rgba(0,230,118,.1);  border-color: rgba(0,230,118,.3);  color: #a5d6a7; }
+
     /* ── Confirm modal overlay ── */
     .confirm-overlay {
       position: fixed; inset: 0; z-index: 500;
@@ -216,10 +232,23 @@
     .popup-hud-val.warn   { color: var(--setup);  }
     .popup-hud-val.danger { color: var(--closed); }
 
-    /* Topbar button group: end + X */
+    /* Topbar button group: tools + end + X */
     .popup-topbar-btns {
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;
+      justify-content: flex-end;
     }
+    .popup-tool-btn {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: var(--text-200); font-size: .75rem; font-weight: 700;
+      padding: 8px 13px; border-radius: 100px; cursor: pointer; white-space: nowrap;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .popup-tool-btn:active { background: rgba(255,255,255,.18); transform: scale(.95); }
+    .popup-tool-btn--break {
+      background: rgba(255,152,0,.12); border-color: rgba(255,152,0,.35); color: #ffcc80;
+    }
+    .popup-tool-btn--break:active { background: rgba(255,152,0,.24); }
     .popup-end-btn {
       display: flex; align-items: center; gap: 6px;
       background: rgba(244,67,54,.12); border: 1px solid rgba(244,67,54,.3);
@@ -511,6 +540,9 @@
       </div>
     </div>
     <div class="popup-topbar-btns">
+      <button class="popup-tool-btn" onclick="adjustTimer(-1)">−1 דק'</button>
+      <button class="popup-tool-btn" onclick="adjustTimer(1)">+1 דק'</button>
+      <button class="popup-tool-btn popup-tool-btn--break" onclick="goBreak()">☕ יצאתי להפסקה</button>
       <button class="popup-end-btn" id="btn-end" onclick="endAndReset()">
         <span>סיים פעילות</span> ⏹
       </button>
@@ -682,7 +714,13 @@ function buildDetailView() {
   const color = s.topicColor || 'var(--cyan)';
   const now   = Date.now();
 
-  let timerHtml = '', infoHtml = '', actionHtml = '';
+  let timerHtml = '', infoHtml = '', actionHtml = '', secondaryHtml = '';
+
+  // Break / temporary-close are available from every state, and both are
+  // reversible from the state they put the station into.
+  const BREAK_BTN  = `<button class="detail-sec-btn detail-sec-btn--break"  onclick="goBreak()">☕ צא להפסקה</button>`;
+  const CLOSE_BTN  = `<button class="detail-sec-btn detail-sec-btn--closed" onclick="goClosed()">🚫 סגור זמנית</button>`;
+  const REOPEN_BTN = `<button class="detail-sec-btn detail-sec-btn--back"   onclick="reopenStation()">▶ חזור לפעילות רגילה</button>`;
 
   if (st === 'running' && s.sessionEndTime) {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
@@ -694,7 +732,8 @@ function buildDetailView() {
         <div class="detail-timer ${cls}" id="detail-timer">${formatTimer(secs)}</div>
         <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
       </div>`;
-    actionHtml = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
+    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
   } else if (st === 'setup') {
     const secs = s.setupEndTime ? Math.max(0, Math.round((s.setupEndTime - now)/1000)) : 0;
     timerHtml  = `
@@ -704,8 +743,9 @@ function buildDetailView() {
         <div class="detail-timer" style="color:var(--setup);text-shadow:0 0 40px rgba(255,193,7,.35);" id="detail-timer">${formatTimer(secs)}</div>
         <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
       </div>`;
-    infoHtml   = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);">מתארגנים — הסבב הבא יפתח בקרוב</div>`;
-    actionHtml = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל עכשיו ▶</button>`;
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);">מתארגנים — הסבב הבא יפתח בקרוב</div>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל עכשיו ▶</button>`;
+    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
   } else if (st === 'boarding') {
     const secs = s.boardingEndTime ? Math.max(0, Math.round((s.boardingEndTime - now)/1000)) : 0;
     timerHtml  = `
@@ -715,16 +755,20 @@ function buildDetailView() {
         <div class="detail-timer" style="color:var(--boarding);text-shadow:0 0 40px rgba(33,150,243,.35);" id="detail-timer">${formatTimer(secs)}</div>
         <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
       </div>`;
-    actionHtml = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל פעילות עכשיו ▶</button>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל פעילות עכשיו ▶</button>`;
+    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
   } else if (st === 'idle') {
-    actionHtml = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
+    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml  = `
       <div class="detail-timer-label" style="color:var(--break)">הפסקה — נחזור בעוד</div>
       <div class="detail-timer" style="color:var(--break);text-shadow:0 0 40px rgba(255,152,0,.35);" id="detail-timer">${formatTimer(secs)}</div>`;
+    secondaryHtml = `<div class="detail-actions-row">${REOPEN_BTN}</div>`;
   } else if (st === 'closed') {
-    infoHtml = `<div class="detail-info-box" style="background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);color:var(--closed);">🔴 המתחם סגור</div>`;
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);color:var(--closed);">🔴 המתחם סגור</div>`;
+    secondaryHtml = `<div class="detail-actions-row">${REOPEN_BTN}</div>`;
   }
 
   document.getElementById('detail-hero').innerHTML = `
@@ -736,7 +780,8 @@ function buildDetailView() {
     </div>
     ${timerHtml}
     ${infoHtml}
-    ${actionHtml}`;
+    ${actionHtml}
+    ${secondaryHtml}`;
 }
 
 function tickDetailView() {
@@ -775,6 +820,46 @@ async function adjustTimer(minutes) {
       await stationRef(selectedId).update({ boardingEndTime: newEnd, lastUpdated: Date.now() });
     } else { return; }
     showToast(label, 'success', 2000);
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+async function goBreak() {
+  const s = stations[selectedId];
+  if (!s) return;
+  if (!confirm(`לצאת להפסקה ב${s.name}?\nהפעילות הנוכחית תיעצר והמתחם יסומן כבהפסקה (30 דק').`)) return;
+  try {
+    await transitionStation(selectedId, 'break', s, { manual: true });
+    if (popupOpen) closePopup();
+    else buildDetailView();
+    showToast('☕ יצאתם להפסקה', 'warning');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+async function goClosed() {
+  const s = stations[selectedId];
+  if (!s) return;
+  if (!confirm(`לסגור זמנית את ${s.name}?\nהמתחם יוצג כסגור עד שתפתחו אותו מחדש.`)) return;
+  try {
+    await transitionStation(selectedId, 'closed', s, { manual: true });
+    if (popupOpen) closePopup();
+    else buildDetailView();
+    showToast('🚫 המתחם נסגר זמנית', 'warning');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+async function reopenStation() {
+  const s = stations[selectedId];
+  if (!s) return;
+  try {
+    await transitionStation(selectedId, 'idle', s, { manual: true });
+    buildDetailView();
+    showToast('✓ המתחם חזר לפעילות רגילה', 'success');
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
   }

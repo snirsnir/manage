@@ -487,6 +487,21 @@ const DIR_LABEL = {
 // renders it rotated 270° (points left). Alias them by what the viewer sees.
 const POINTS_RIGHT = 'left';
 const POINTS_LEFT  = 'right';
+const POINTS_DOWN  = 'down';   // a lab shown on its own points at its own entrance
+
+// ── Named preset displays ──
+// Edit this list to change what appears on the picker screen. Each entry is
+// the lab names exactly as they are set in the station settings. A pair points
+// right/left; a lab listed on its own points down.
+const PRESET_DEFS = [
+  ['מעבדה 1',  'מעבדה 2'],
+  ['מעבדה 3',  'מעבדה 4'],
+  ['מעבדה 5',  'מעבדה 6'],
+  ['יחידה רפואית ב'],
+  ['יחידה רפואית א'],
+  ['מחשבים 1', 'מחשבים 2'],
+  ['אלקטרוניקה', 'טכנולוגיה'],
+];
 
 let deepLinkDone = false;
 
@@ -512,18 +527,32 @@ stationsRef().on('value', snap => {
 // PRESETS + SHARE LINKS
 // ════════════════════════════════
 
-// Stations sorted by their configured order, chunked into consecutive pairs.
-// Within a pair the first lab points right, the second points left.
+// Names are matched loosely — whitespace collapsed and geresh / apostrophe
+// variants stripped — so "יחידה רפואית ב'" still matches a lab saved as
+// "יחידה רפואית ב". A preset naming a lab that does not exist is skipped.
+function normName(n) {
+  return (n || '').replace(/['\u2019\u05F3"\u05F4]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function findStationByName(name) {
+  const target = normName(name);
+  return Object.values(stations).find(s => normName(s.name) === target) || null;
+}
+
 function getPresets() {
-  const list = Object.values(stations).sort((a,b) => (a.order||0)-(b.order||0));
-  const out  = [];
-  for (let i = 0; i + 1 < list.length; i += 2) {
-    const a = list[i], b = list[i+1];
-    out.push({
-      ids:  [a.id, b.id],
-      dirs: { [a.id]: POINTS_RIGHT, [b.id]: POINTS_LEFT },
-      labs: [a, b]
-    });
+  const out = [];
+  for (const def of PRESET_DEFS) {
+    const labs = def.map(findStationByName);
+    if (labs.some(s => !s)) continue;
+
+    const dirs = {};
+    if (labs.length === 1) {
+      dirs[labs[0].id] = POINTS_DOWN;
+    } else {
+      dirs[labs[0].id] = POINTS_RIGHT;
+      dirs[labs[1].id] = POINTS_LEFT;
+    }
+    out.push({ ids: labs.map(s => s.id), dirs, labs });
   }
   return out;
 }
@@ -544,13 +573,13 @@ function renderPresets() {
   head.style.display = presets.length ? '' : 'none';
 
   row.innerHTML = presets.map((p, i) => {
-    const [a, b] = p.labs;
+    const title = p.labs.map(s => s.name).join(' + ');
+    const rows  = p.labs.map(s =>
+      `<span><span class="pv">${DIR_LABEL[p.dirs[s.id]]}</span> ${s.name}</span>`
+    ).join('');
     return `<div class="preset-card" onclick="applyPreset(${i})">
-      <div class="preset-title">${a.name} + ${b.name}</div>
-      <div class="preset-labs">
-        <span><span class="pv">→</span> ${a.name}</span>
-        <span><span class="pv">←</span> ${b.name}</span>
-      </div>
+      <div class="preset-title">${title}${p.labs.length === 1 ? ' <span style="font-weight:600;color:var(--text-400);font-size:.78rem">(מסך יחיד)</span>' : ''}</div>
+      <div class="preset-labs">${rows}</div>
       <button class="preset-copy" onclick="event.stopPropagation();copyPresetLink(${i})">🔗 העתק קישור</button>
     </div>`;
   }).join('');
