@@ -3,7 +3,6 @@
     "public": ".",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      { "source": "/",           "destination": "/tut.html" },
       { "source": "/tut",        "destination": "/tut.html" },
       { "source": "/activities", "destination": "/activities.html" },
       { "source": "/admin", "destination": "/admin.html" },
@@ -11,7 +10,7 @@
       { "source": "/remote", "destination": "/remote.html" },
       { "source": "/door", "destination": "/door.html" },
       { "source": "/screen", "destination": "/screen.html" },
-      { "source": "/board",           "destination": "/board.html" },
+      { "source": "/board",           "destination": "/index.html" },
       { "source": "/sod",             "destination": "/sod.html" },
       { "source": "/setup-stations",  "destination": "/setup-stations.html" },
       { "source": "/summary",         "destination": "/summary.html" }
