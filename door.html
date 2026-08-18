@@ -483,16 +483,18 @@ const DIR_LABEL = {
 
 // ── Preset direction keys ──
 // The dpad keys are named for their POSITION in the RTL grid, not for the way
-// the arrow points: 'left' renders ▲ rotated 90° (points right) and 'right'
-// renders it rotated 270° (points left). Alias them by what the viewer sees.
-const POINTS_RIGHT = 'left';
-const POINTS_LEFT  = 'right';
-const POINTS_DOWN  = 'down';   // a lab shown on its own points at its own entrance
+// the arrow points: 'down-left' renders ▲ rotated 135° (so it points down-RIGHT,
+// ↘) and 'down-right' renders it rotated 225° (points down-LEFT, ↙). Alias them
+// by what the viewer actually sees so presets can't be wired backwards.
+const POINTS_DOWN_RIGHT = 'down-left';
+const POINTS_DOWN_LEFT  = 'down-right';
+const POINTS_DOWN       = 'down';   // a lab shown on its own points at its own entrance
 
 // ── Named preset displays ──
 // Edit this list to change what appears on the picker screen. Each entry is
 // the lab names exactly as they are set in the station settings. A pair points
-// right/left; a lab listed on its own points down.
+// diagonally down-right / down-left; a lab listed on its own points straight
+// down at its own entrance.
 const PRESET_DEFS = [
   ['מעבדה 1',  'מעבדה 2'],
   ['מעבדה 3',  'מעבדה 4'],
@@ -549,8 +551,8 @@ function getPresets() {
     if (labs.length === 1) {
       dirs[labs[0].id] = POINTS_DOWN;
     } else {
-      dirs[labs[0].id] = POINTS_RIGHT;
-      dirs[labs[1].id] = POINTS_LEFT;
+      dirs[labs[0].id] = POINTS_DOWN_RIGHT;
+      dirs[labs[1].id] = POINTS_DOWN_LEFT;
     }
     out.push({ ids: labs.map(s => s.id), dirs, labs });
   }
