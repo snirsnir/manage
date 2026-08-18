@@ -200,6 +200,7 @@ async function copyToClipboard(text, successMsg = 'הועתק!') {
 const _autoWatchLocks = new Set();
 
 function startAutoTransitionWatcher(getStations) {
+  console.log('%c[AutoTransition] v20260816 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
   setInterval(async () => {
     const now  = Date.now();
     const stns = typeof getStations === 'function' ? getStations() : getStations;
@@ -211,7 +212,7 @@ function startAutoTransitionWatcher(getStations) {
       let next = null;
       if      (s.status === 'running'  && s.sessionEndTime  > 0 && now >= s.sessionEndTime)  next = 'setup';
       else if (s.status === 'setup'    && s.setupEndTime    > 0 && now >= s.setupEndTime)    next = 'boarding';
-      else if (s.status === 'boarding' && s.boardingEndTime > 0 && now >= s.boardingEndTime) next = 'idle';
+      else if (s.status === 'boarding' && s.boardingEndTime > 0 && now >= s.boardingEndTime) next = 'running';
       if (!next) continue;
 
       _autoWatchLocks.add(id);

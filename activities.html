@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260816">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -111,6 +111,8 @@
       text-shadow: 0 0 40px rgba(0,230,118,.35);
       font-variant-numeric: tabular-nums; line-height: 1;
       transition: color .3s, text-shadow .3s;
+      /* רוחב קבוע — Orbitron לא תומך ב-tnum, בלי זה השעון "קופץ" כל שנייה */
+      min-width: 5.2ch; text-align: center; flex-shrink: 0;
     }
     .detail-timer.warn   { color: var(--setup);  text-shadow: 0 0 40px rgba(255,193,7,.35); }
     .detail-timer.danger { color: var(--closed); text-shadow: 0 0 40px rgba(244,67,54,.35); }
@@ -125,6 +127,21 @@
       margin-top: 28px; padding: 16px 40px;
       font-size: 1.1rem; border-radius: var(--r-lg);
     }
+
+    .detail-timer-row {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; gap: 16px;
+    }
+    .detail-timer-row .detail-adjust-btn:first-child { justify-self: end;   }
+    .detail-timer-row .detail-adjust-btn:last-child  { justify-self: start; }
+    .detail-adjust-btn {
+      padding: 8px 16px; border-radius: 100px; font-size: .82rem; font-weight: 700;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: var(--text-200); cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-adjust-btn:active { background: rgba(255,255,255,.18); transform: scale(.95); }
 
     /* ── Confirm modal overlay ── */
     .confirm-overlay {
@@ -194,6 +211,7 @@
     .popup-hud-val {
       font-family: var(--font-display); font-size: 1.15rem; font-weight: 700;
       color: var(--running); font-variant-numeric: tabular-nums; letter-spacing: 2px;
+      min-width: 5.2ch; text-align: center; flex-shrink: 0;
     }
     .popup-hud-val.warn   { color: var(--setup);  }
     .popup-hud-val.danger { color: var(--closed); }
@@ -247,6 +265,7 @@
       text-shadow: 0 0 60px rgba(0,230,118,.4);
       font-variant-numeric: tabular-nums; line-height: 1;
       transition: color .3s, text-shadow .3s;
+      min-width: 5.2ch; text-align: center;
     }
     .popup-timer-big.warn   { color: var(--setup);  text-shadow: 0 0 60px rgba(255,193,7,.4);  }
     .popup-timer-big.danger { color: var(--closed); text-shadow: 0 0 60px rgba(244,67,54,.4); }
@@ -392,8 +411,8 @@
 <nav class="navbar navbar--autohide" id="auto-navbar">
   <div class="navbar__nav">
     <a href="dashboard.html"  class="nav-link">עמדת מנהל משמרת</a>
-    <a href="board.html"      class="nav-link">לוח סטטוס</a>
-    <a href="door.html"       class="nav-link">מסך קהל</a>
+    <a href="board.html"      class="nav-link">מסך אורחים</a>
+    <a href="door.html"       class="nav-link">הצגה בכניסה למעבדות</a>
     <a href="activities.html" class="nav-link active">מסך מדריכים</a>
     <a href="admin.html"      class="nav-link">ניהול פעילויות</a>
   </div>
@@ -532,7 +551,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js"></script>
+<script src="js/utils.js?v=20260816"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -670,12 +689,35 @@ function buildDetailView() {
     const cls  = secs < 60 ? 'danger' : secs < 180 ? 'warn' : '';
     timerHtml  = `
       <div class="detail-timer-label">נותר לפעילות</div>
-      <div class="detail-timer ${cls}" id="detail-timer">${formatTimer(secs)}</div>`;
+      <div class="detail-timer-row">
+        <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
+        <div class="detail-timer ${cls}" id="detail-timer">${formatTimer(secs)}</div>
+        <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
+      </div>`;
     actionHtml = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
-  } else if (st === 'idle' || st === 'boarding') {
-    actionHtml = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
   } else if (st === 'setup') {
-    infoHtml = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);">⏳ מתארגנים — הסבב הבא יפתח בקרוב</div>`;
+    const secs = s.setupEndTime ? Math.max(0, Math.round((s.setupEndTime - now)/1000)) : 0;
+    timerHtml  = `
+      <div class="detail-timer-label" style="color:var(--setup)">⏳ זמן הכנה נותר</div>
+      <div class="detail-timer-row">
+        <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
+        <div class="detail-timer" style="color:var(--setup);text-shadow:0 0 40px rgba(255,193,7,.35);" id="detail-timer">${formatTimer(secs)}</div>
+        <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
+      </div>`;
+    infoHtml   = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);">מתארגנים — הסבב הבא יפתח בקרוב</div>`;
+    actionHtml = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל עכשיו ▶</button>`;
+  } else if (st === 'boarding') {
+    const secs = s.boardingEndTime ? Math.max(0, Math.round((s.boardingEndTime - now)/1000)) : 0;
+    timerHtml  = `
+      <div class="detail-timer-label" style="color:var(--boarding)">🔵 זמן קליטת קהל נותר</div>
+      <div class="detail-timer-row">
+        <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
+        <div class="detail-timer" style="color:var(--boarding);text-shadow:0 0 40px rgba(33,150,243,.35);" id="detail-timer">${formatTimer(secs)}</div>
+        <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
+      </div>`;
+    actionHtml = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל פעילות עכשיו ▶</button>`;
+  } else if (st === 'idle') {
+    actionHtml = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml  = `
@@ -702,14 +744,54 @@ function tickDetailView() {
   if (!s) return;
   const timerEl = document.getElementById('detail-timer');
   if (!timerEl) return;
-  const st = s.status || 'idle';
+  const st  = s.status || 'idle';
+  const now = Date.now();
   if (st === 'running' && s.sessionEndTime) {
-    const secs = Math.max(0, Math.round((s.sessionEndTime - Date.now())/1000));
+    const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
     timerEl.textContent = formatTimer(secs);
     timerEl.className   = `detail-timer${secs<60?' danger':secs<180?' warn':''}`;
+  } else if (st === 'setup' && s.setupEndTime) {
+    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.setupEndTime - now)/1000)));
+  } else if (st === 'boarding' && s.boardingEndTime) {
+    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.boardingEndTime - now)/1000)));
   } else if (st === 'break' && s.breakEndTime) {
-    const secs = Math.max(0, Math.round((s.breakEndTime - Date.now())/1000));
-    timerEl.textContent = formatTimer(secs);
+    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.breakEndTime - now)/1000)));
+  }
+}
+
+async function adjustTimer(minutes) {
+  const s = stations[selectedId];
+  if (!s) return;
+  const extraMs = minutes * 60 * 1000;
+  const label   = minutes > 0 ? 'נוספה דקה' : 'הוסרה דקה';
+  try {
+    if (s.status === 'running') {
+      await extendSession(selectedId, s, minutes);
+    } else if (s.status === 'setup' && s.setupEndTime) {
+      const newEnd = Math.max(Date.now() + 10000, s.setupEndTime + extraMs);
+      await stationRef(selectedId).update({ setupEndTime: newEnd, lastUpdated: Date.now() });
+    } else if (s.status === 'boarding' && s.boardingEndTime) {
+      const newEnd = Math.max(Date.now() + 10000, s.boardingEndTime + extraMs);
+      await stationRef(selectedId).update({ boardingEndTime: newEnd, lastUpdated: Date.now() });
+    } else { return; }
+    showToast(label, 'success', 2000);
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+async function startNow() {
+  const s = stations[selectedId];
+  if (!s) return;
+  const AUTO_NEXT = { setup: 'boarding', boarding: 'running' };
+  const next = AUTO_NEXT[s.status];
+  if (!next) return;
+  try {
+    await transitionStation(selectedId, next, s, { manual: true, skip: true });
+    if (next === 'running') openPopup();
+    else buildDetailView();
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
   }
 }
 
@@ -997,9 +1079,9 @@ async function endAndReset() {
   if (!s) return;
   if (btn) { btn.disabled = true; btn.innerHTML = '<span>...מסיים</span> ⏹'; }
   try {
-    await transitionStation(selectedId, 'boarding', s, { manual: true });
+    await transitionStation(selectedId, 'setup', s, { manual: true });
     closePopup();
-    showToast('✓ פעילות הסתיימה — קליטת קהל חדשה', 'success');
+    showToast('✓ פעילות הסתיימה — עוברים להתארגנות', 'success');
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = '⏹ <span>סיים פעילות</span>'; }
