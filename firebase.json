@@ -3,6 +3,8 @@
     "public": ".",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      { "source": "/",           "destination": "/tut.html" },
+      { "source": "/tut",        "destination": "/tut.html" },
       { "source": "/activities", "destination": "/activities.html" },
       { "source": "/admin", "destination": "/admin.html" },
       { "source": "/dashboard", "destination": "/dashboard.html" },
