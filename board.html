@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260816">
+  <link rel="stylesheet" href="css/style.css?v=20260819">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -361,7 +361,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260816"></script>
+<script src="js/utils.js?v=20260819"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -524,6 +524,9 @@ function buildRow(s) {
   } else if (st === 'setup' && s.setupEndTime) {
     const secs = Math.max(0, Math.round((s.setupEndTime - now)/1000));
     timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--setup)">${formatTimer(secs)}</span>`;
+  } else if (st === 'boarding' && s.boardingEndTime) {
+    const secs = Math.max(0, Math.round((s.boardingEndTime - now)/1000));
+    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--boarding)">${formatTimer(secs)}</span>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--break)">${formatTimer(secs)}</span>`;
@@ -576,6 +579,7 @@ function tickBoard() {
       let secs = 0;
       if (st === 'running'  && s.sessionEndTime)  secs = Math.max(0, Math.round((s.sessionEndTime  - now)/1000));
       if (st === 'setup'    && s.setupEndTime)     secs = Math.max(0, Math.round((s.setupEndTime    - now)/1000));
+      if (st === 'boarding' && s.boardingEndTime)  secs = Math.max(0, Math.round((s.boardingEndTime - now)/1000));
       if (st === 'break'    && s.breakEndTime)     secs = Math.max(0, Math.round((s.breakEndTime    - now)/1000));
       tEl.textContent = formatTimer(secs);
       if (st === 'running' && secs < 180) tEl.style.color = secs < 60 ? 'var(--closed)' : 'var(--setup)';

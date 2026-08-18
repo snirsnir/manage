@@ -137,7 +137,7 @@ async function transitionStation(stationId, newStatus, station, extraData = {}) 
     update.extensions       = 0;
     update.totalExtensionMinutes = 0;
   } else if (newStatus === 'boarding') {
-    const boardMs = (station.boardingDuration || 5) * 60 * 1000;
+    const boardMs = (station.boardingDuration || 3) * 60 * 1000;
     update.boardingStartTime = now;
     update.boardingEndTime   = now + boardMs;
   } else if (newStatus === 'setup') {
@@ -200,7 +200,7 @@ async function copyToClipboard(text, successMsg = 'הועתק!') {
 const _autoWatchLocks = new Set();
 
 function startAutoTransitionWatcher(getStations) {
-  console.log('%c[AutoTransition] v20260816 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
+  console.log('%c[AutoTransition] v20260819 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
   setInterval(async () => {
     const now  = Date.now();
     const stns = typeof getStations === 'function' ? getStations() : getStations;
