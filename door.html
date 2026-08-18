@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>מסך קהל | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>הצגה בכניסה למעבדות | טכנושף</title>
+  <link rel="stylesheet" href="css/style.css?v=20260816">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -319,8 +319,8 @@
 <nav class="navbar navbar--autohide" id="auto-navbar">
   <div class="navbar__nav">
     <a href="dashboard.html"  class="nav-link">עמדת מנהל משמרת</a>
-    <a href="board.html"      class="nav-link">לוח סטטוס</a>
-    <a href="door.html"       class="nav-link active">מסך קהל</a>
+    <a href="board.html"      class="nav-link">מסך אורחים</a>
+    <a href="door.html"       class="nav-link active">הצגה בכניסה למעבדות</a>
     <a href="activities.html" class="nav-link">מסך מדריכים</a>
     <a href="admin.html"      class="nav-link">ניהול פעילויות</a>
   </div>
@@ -337,14 +337,14 @@
   </div>
   <a href="index.html" class="navbar__brand">
     <img src="logo.png" alt="טכנודע" class="navbar__logo">
-    <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">מסך קהל</div></div>
+    <div><div class="navbar__title">טכנושף</div><div class="navbar__subtitle">הצגה בכניסה למעבדות</div></div>
   </a>
 </nav>
 
 <!-- ════ STEP 1: SELECT STATIONS ════ -->
 <div id="step1" class="step-screen">
   <img src="logo.png" alt="טכנודע" class="step-logo">
-  <div class="step-title">מסך קהל</div>
+  <div class="step-title">הצגה בכניסה למעבדות</div>
   <div class="step-sub">צרו תצוגות לטלוויזיות מעל המעבדות — בחרו עד 4 מתחמים להצגה</div>
   <div class="step-bar">
     <div class="step-dot active" id="dot1"></div>
@@ -371,7 +371,7 @@
   <div class="dir-list" id="dir-list"></div>
   <div class="step-btns">
     <button class="btn btn--ghost"    onclick="goToStep1()">חזרה לבחירה</button>
-    <button class="btn btn--primary"  onclick="showDisplay()">הצג מסך קהל</button>
+    <button class="btn btn--primary"  onclick="showDisplay()">הצג הצגה בכניסה למעבדות</button>
   </div>
 </div>
 
@@ -384,7 +384,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js"></script>
+<script src="js/utils.js?v=20260816"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
