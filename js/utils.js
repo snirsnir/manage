@@ -200,7 +200,7 @@ async function copyToClipboard(text, successMsg = 'הועתק!') {
 const _autoWatchLocks = new Set();
 
 function startAutoTransitionWatcher(getStations) {
-  console.log('%c[AutoTransition] v20260819 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
+  console.log('%c[AutoTransition] v20260824 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
   setInterval(async () => {
     const now  = Date.now();
     const stns = typeof getStations === 'function' ? getStations() : getStations;

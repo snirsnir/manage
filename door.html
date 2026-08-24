@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260819">
+  <link rel="stylesheet" href="css/style.css?v=20260824">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -278,15 +278,19 @@
     .disp-label.status-setup    { color: var(--setup);   }
     .disp-label.status-closed   { color: var(--closed);  }
     .disp-label.status-break    { color: var(--break);   }
+    /* was pulsing box-shadow to a 68px blur on every boarding cell at once */
     @keyframes pulse-disp {
-      0%,100% { box-shadow: 0 0 14px currentColor }
-      50%     { box-shadow: 0 0 38px currentColor, 0 0 68px currentColor }
+      0%,100% { opacity: 1;  }
+      50%     { opacity: .55; }
     }
 
     .disp-boarding-msg { font-size: clamp(.75rem,1.8vw,1.5rem); font-weight: 700; color: var(--boarding); }
 
     .disp-next {
-      background: rgba(0,0,0,.4); backdrop-filter: blur(10px);
+      /* backdrop-filter: blur() dropped — it is recomputed continuously and is
+         a known freeze on low-power Android TV boxes. A more opaque ground
+         reads the same over the dark display background. */
+      background: rgba(0,0,0,.55);
       border: 1px solid rgba(255,255,255,.1); border-radius: var(--r-xl);
       padding: clamp(8px,1.5vw,24px) clamp(14px,2.5vw,48px);
       display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -329,7 +333,11 @@
     /* Same-topic center notification */
     #center-notif {
       position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      /* translateZ + will-change put this on its own compositor layer, so the
+         blink varies layer alpha on the GPU instead of repainting the blurred
+         shadow every frame — the old version froze weak TV boxes. */
+      transform: translate(-50%, -50%) translateZ(0);
+      will-change: opacity;
       background: rgba(240,180,41,.96); color: #000;
       border-radius: 12px;
       width: clamp(240px, 36vw, 480px);
@@ -343,10 +351,11 @@
     }
     #center-notif strong { font-weight: 900; display: block; font-size: 1.25em; margin-bottom: .25em; }
     #center-notif.hidden { display: none; }
-    #center-notif.left-side { left: clamp(24px,4vw,60px); transform: translateY(-50%); }
+    #center-notif.left-side { left: clamp(24px,4vw,60px); transform: translateY(-50%) translateZ(0); }
+    /* opacity only — animating box-shadow repaints a 60px blur every frame */
     @keyframes notif-blink {
-      0%, 100% { opacity: 1; box-shadow: 0 0 60px rgba(240,180,41,.55), 0 8px 32px rgba(0,0,0,.4); }
-      50%       { opacity: .3; box-shadow: 0 0 10px rgba(240,180,41,.2); }
+      0%, 100% { opacity: 1;   }
+      50%      { opacity: .35; }
     }
     .disp-msg {
       background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.4);
@@ -430,7 +439,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260819"></script>
+<script src="js/utils.js?v=20260824"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -839,6 +848,8 @@ function buildCell(s, id) {
     </div>`;
 }
 
+let _lastNotifHtml = '';
+
 function checkSameTopicNotifs() {
   const now = Date.now();
   const THREE_MIN = 3 * 60 * 1000;
@@ -873,7 +884,14 @@ function checkSameTopicNotifs() {
       const timeStr = secs <= 60 ? 'פחות מדקה' : `${Math.ceil(secs / 60)} דקות`;
       return `<strong>מעבדת ${s.name}</strong> מתפנה בעוד ${timeStr}`;
     }).join('<br>');
-    el.innerHTML = `🔔 ${lines}<br><span style="font-weight:700">עם פעילות זהה — מוזמנים להגיע לשם</span>`;
+    // Runs once a second. Re-assigning innerHTML rebuilds the subtree and
+    // forces a repaint of the shadow, so only touch it when the text really
+    // changed — which is once a minute, not once a second.
+    const html = `🔔 ${lines}<br><span style="font-weight:700">עם פעילות זהה — מוזמנים להגיע לשם</span>`;
+    if (html !== _lastNotifHtml) {
+      el.innerHTML   = html;
+      _lastNotifHtml = html;
+    }
     el.classList.remove('hidden');
     el.classList.toggle('left-side', selectedIds.length === 1);
   } else {
