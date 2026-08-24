@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824d">
+  <link rel="stylesheet" href="css/style.css?v=20260824e">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -200,13 +200,15 @@
       .mobile-board-hdr  { display: none !important; } /* hidden on mobile — replaced by per-floor headers */
 
       /* Per-floor column headers (injected after each floor-section-header in JS) */
+      /* The header and the rows are separate grids, so they only line up if
+         they declare identical, content-independent tracks. */
       .mobile-floor-hdr {
         display: grid !important;
-        grid-template-columns: auto 1fr auto auto;
+        grid-template-columns: 26px 1fr 6.4rem 4.6rem;
         column-gap: 8px;
         padding: 1px 14px 4px;
-        font-size: .58rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-        color: var(--text-400);
+        font-size: .56rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+        color: var(--text-400); line-height: 1.25;
       }
       .mobile-floor-hdr > span:nth-child(1) { text-align: center; }
       .mobile-floor-hdr > span:nth-child(2) { text-align: right; }
@@ -218,7 +220,7 @@
          so the status badge starts right where that string ends */
       .board-rows .board-row {
         display: grid !important;
-        grid-template-columns: auto max-content auto auto !important;
+        grid-template-columns: 26px 1fr 6.4rem 4.6rem !important;
         grid-template-rows: auto auto !important;
         grid-template-areas:
           "check topic status timer"
@@ -235,7 +237,10 @@
         display: flex; align-items: center; justify-content: center; overflow: visible; }
 
       /* Status badge on mobile: compact pill, same look as desktop */
-      .board-rows .board-row .badge { font-size: .72rem; padding: 4px 9px; white-space: nowrap; }
+      .board-rows .board-row .badge {
+        font-size: .66rem; padding: 4px 7px; white-space: normal;
+        text-align: center; line-height: 1.15;
+      }
       .board-rows .board-row .badge-dot { width: 8px; height: 8px; }
 
       .row-name  { font-size: .88rem; font-weight: 800; white-space: nowrap; }
@@ -361,7 +366,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824d"></script>
+<script src="js/utils.js?v=20260824e"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -493,7 +498,7 @@ function renderBoard() {
   }
 
   const groups = groupByFloor(list);
-  const floorHdr = `<div class="mobile-floor-hdr"><span>היינו כבר</span><span>נושא / מתחם</span><span>מצב</span><span>זמן</span></div>`;
+  const floorHdr = `<div class="mobile-floor-hdr"><span>היינו כבר</span><span>נושא / מתחם</span><span>מצב</span><span>זמן נותר לפעילות</span></div>`;
   rows.innerHTML = groups.map(g =>
     `<div class="floor-section-header">${g.label}</div>` +
     floorHdr +

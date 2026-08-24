@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824d">
+  <link rel="stylesheet" href="css/style.css?v=20260824e">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -155,7 +155,6 @@
       -webkit-tap-highlight-color: transparent;
     }
     .detail-sec-btn:active { transform: scale(.95); }
-    .detail-sec-btn--break  { background: rgba(255,152,0,.1);  border-color: rgba(255,152,0,.3);  color: #ffcc80; }
     .detail-sec-btn--closed { background: rgba(244,67,54,.08); border-color: rgba(244,67,54,.28); color: #ef9a9a; }
     .detail-sec-btn--back   { background: rgba(0,230,118,.1);  border-color: rgba(0,230,118,.3);  color: #a5d6a7; }
 
@@ -245,10 +244,6 @@
       -webkit-tap-highlight-color: transparent;
     }
     .popup-tool-btn:active { background: rgba(255,255,255,.18); transform: scale(.95); }
-    .popup-tool-btn--break {
-      background: rgba(255,152,0,.12); border-color: rgba(255,152,0,.35); color: #ffcc80;
-    }
-    .popup-tool-btn--break:active { background: rgba(255,152,0,.24); }
     .popup-end-btn {
       display: flex; align-items: center; gap: 6px;
       background: rgba(244,67,54,.12); border: 1px solid rgba(244,67,54,.3);
@@ -542,7 +537,6 @@
     <div class="popup-topbar-btns">
       <button class="popup-tool-btn" onclick="adjustTimer(-1)">−1 דק'</button>
       <button class="popup-tool-btn" onclick="adjustTimer(1)">+1 דק'</button>
-      <button class="popup-tool-btn popup-tool-btn--break" onclick="goBreak()">☕ יצאתי להפסקה</button>
       <button class="popup-end-btn" id="btn-end" onclick="endAndReset()">
         <span>סיים פעילות</span> ⏹
       </button>
@@ -583,7 +577,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824d"></script>
+<script src="js/utils.js?v=20260824e"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -716,9 +710,8 @@ function buildDetailView() {
 
   let timerHtml = '', infoHtml = '', actionHtml = '', secondaryHtml = '';
 
-  // Break / temporary-close are available from every state, and both are
-  // reversible from the state they put the station into.
-  const BREAK_BTN  = `<button class="detail-sec-btn detail-sec-btn--break"  onclick="goBreak()">☕ צא להפסקה</button>`;
+  // Temporary close is available from every state and is reversible from the
+  // state it puts the station into.
   const CLOSE_BTN  = `<button class="detail-sec-btn detail-sec-btn--closed" onclick="goClosed()">🚫 סגור זמנית</button>`;
   const REOPEN_BTN = `<button class="detail-sec-btn detail-sec-btn--back"   onclick="reopenStation()">▶ חזור לפעילות רגילה</button>`;
 
@@ -733,16 +726,16 @@ function buildDetailView() {
         <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
       </div>`;
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
-    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
+    secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
   } else if (st === 'setup' || st === 'boarding') {
     // No countdown — the station waits here until the instructor starts the
     // next activity. ('boarding' is legacy and renders the same way.)
     infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);font-size:1rem;">⏳ מתארגנים לפעילות הבאה — התחילו כשאתם מוכנים</div>`;
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">▶ התחל פעילות חדשה</button>`;
-    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
+    secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
   } else if (st === 'idle') {
     actionHtml    = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
-    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
+    secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml  = `
@@ -792,20 +785,6 @@ async function adjustTimer(minutes) {
     if (s.status !== 'running') return;
     await extendSession(selectedId, s, minutes);
     showToast(label, 'success', 2000);
-  } catch(e) {
-    showToast('שגיאה: ' + e.message, 'error');
-  }
-}
-
-async function goBreak() {
-  const s = stations[selectedId];
-  if (!s) return;
-  if (!confirm(`לצאת להפסקה ב${s.name}?\nהפעילות הנוכחית תיעצר והמתחם יסומן כבהפסקה (30 דק').`)) return;
-  try {
-    await transitionStation(selectedId, 'break', s, { manual: true });
-    if (popupOpen) closePopup();
-    else buildDetailView();
-    showToast('☕ יצאתם להפסקה', 'warning');
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
   }
