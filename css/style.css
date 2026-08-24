@@ -87,6 +87,7 @@ a:hover { text-decoration: underline; }
    font-variant-numeric, so without this a ticking clock shifts every second.
    Cells are sized in ch, so they track whatever font-size the timer uses.
    Built by timerCells() / setTimerText() in utils.js. */
+.tdw      { display: inline-block; direction: ltr; unicode-bidi: isolate; }
 .td       { display: inline-block; width: 1ch; text-align: center; font-style: normal; }
 .td--sep  { width: .5ch; }
 

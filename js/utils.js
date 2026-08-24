@@ -35,9 +35,13 @@ function formatTimer(totalSeconds) {
 // digits have different advance widths and a ticking clock visibly shifts.
 // Render each glyph in its own fixed-width cell instead (see .td in style.css).
 function timerCells(totalSeconds) {
-  return Array.from(formatTimer(totalSeconds))
-    .map(c => `<i class="td${c === ':' ? ' td--sep' : ''}">${c}</i>`)
-    .join('');
+  // dir="ltr" is essential: these pages are RTL, and without it the
+  // inline-block cells lay out right-to-left and 23:57 renders as 75:32.
+  return '<span class="tdw" dir="ltr">' +
+    Array.from(formatTimer(totalSeconds))
+      .map(c => `<i class="td${c === ':' ? ' td--sep' : ''}">${c}</i>`)
+      .join('') +
+    '</span>';
 }
 
 // In-place update: builds the cells once, then writes only the digits that
