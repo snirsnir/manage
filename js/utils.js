@@ -30,6 +30,32 @@ function formatTimer(totalSeconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// ── Fixed-width timer rendering ──
+// Orbitron ships no tabular figures and ignores font-variant-numeric, so its
+// digits have different advance widths and a ticking clock visibly shifts.
+// Render each glyph in its own fixed-width cell instead (see .td in style.css).
+function timerCells(totalSeconds) {
+  return Array.from(formatTimer(totalSeconds))
+    .map(c => `<i class="td${c === ':' ? ' td--sep' : ''}">${c}</i>`)
+    .join('');
+}
+
+// In-place update: builds the cells once, then writes only the digits that
+// actually changed — one or two per second rather than a whole subtree.
+function setTimerText(el, totalSeconds) {
+  if (!el) return;
+  const txt   = formatTimer(totalSeconds);
+  const cells = el._tdCells;
+  if (!cells || cells.length !== txt.length) {
+    el.innerHTML = timerCells(totalSeconds);
+    el._tdCells  = Array.from(el.getElementsByClassName('td'));
+    return;
+  }
+  for (let i = 0; i < txt.length; i++) {
+    if (cells[i].textContent !== txt[i]) cells[i].textContent = txt[i];
+  }
+}
+
 // Format Unix timestamp → HH:MM
 function formatTime(ts) {
   if (!ts) return '--:--';

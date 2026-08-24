@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824b">
+  <link rel="stylesheet" href="css/style.css?v=20260824c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -437,7 +437,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824b"></script>
+<script src="js/utils.js?v=20260824c"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -816,7 +816,7 @@ function buildCell(s, id) {
     mid = `${header}<div class="disp-icon">☕</div>
       <div class="disp-break">
         <div class="disp-break-lbl">נחזור בעוד</div>
-        <div class="disp-break-timer" id="brk-${id}">${formatTimer(secs)}</div>
+        <div class="disp-break-timer" id="brk-${id}">${timerCells(secs)}</div>
       </div>`;
   } else {
     mid = `${header}<div class="disp-icon">🔴</div>${label}`;
@@ -903,7 +903,7 @@ function tickDisplay() {
     if (clkEl) clkEl.textContent = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
     if (st === 'break' && s.breakEndTime) {
       const el = document.getElementById(`brk-${id}`);
-      if (el) el.textContent = formatTimer(Math.max(0,Math.round((s.breakEndTime-now)/1000)));
+      setTimerText(el, Math.max(0,Math.round((s.breakEndTime-now)/1000)));
     }
     if (s.nextSessionTime) {
       const nEl = document.getElementById(`next-${id}`);

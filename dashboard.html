@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824b">
+  <link rel="stylesheet" href="css/style.css?v=20260824c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -435,7 +435,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824b"></script>
+<script src="js/utils.js?v=20260824c"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -746,7 +746,7 @@ function tickTableRow(id) {
     secs = Math.max(0, Math.round((s.breakEndTime - now) / 1000));
 
   if (secs) {
-    timerEl.textContent = formatTimer(secs);
+    setTimerText(timerEl, secs);
     if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--closed)' : 'var(--running)';
   } else if (st === 'setup' || st === 'boarding') {
     // setup has no timer — it waits for the instructor
@@ -824,7 +824,7 @@ function tickCard(id) {
     return;
   }
 
-  timerEl.textContent = formatTimer(secs);
+  setTimerText(timerEl, secs);
   if (progEl) progEl.style.width = pct + '%';
 
   // Delay indicator

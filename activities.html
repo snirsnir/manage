@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824b">
+  <link rel="stylesheet" href="css/style.css?v=20260824c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -583,7 +583,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824b"></script>
+<script src="js/utils.js?v=20260824c"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -654,7 +654,7 @@ function renderGrid() {
     if (st === 'running' && s.sessionEndTime) {
       const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
       const cls  = secs < 60 ? 'danger' : secs < 180 ? 'warn' : '';
-      extra = `<div class="act-timer-mini ${cls}" id="mini-${s.id}">${formatTimer(secs)}</div>`;
+      extra = `<div class="act-timer-mini ${cls}" id="mini-${s.id}">${timerCells(secs)}</div>`;
     }
     return `<div class="act-card status-${st}" onclick="selectStation('${s.id}')">
       <div class="act-dot" style="background:${color};box-shadow:0 0 6px ${color}80"></div>
@@ -676,7 +676,7 @@ function updateMiniTimers() {
     const el = document.getElementById(`mini-${s.id}`);
     if (!el || s.status !== 'running' || !s.sessionEndTime) return;
     const secs = Math.max(0, Math.round((s.sessionEndTime - Date.now())/1000));
-    el.textContent = formatTimer(secs);
+    setTimerText(el, secs);
     el.className   = `act-timer-mini${secs<60?' danger':secs<180?' warn':''}`;
   });
 }
@@ -729,7 +729,7 @@ function buildDetailView() {
       <div class="detail-timer-label">נותר לפעילות</div>
       <div class="detail-timer-row">
         <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
-        <div class="detail-timer ${cls}" id="detail-timer">${formatTimer(secs)}</div>
+        <div class="detail-timer ${cls}" id="detail-timer">${timerCells(secs)}</div>
         <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
       </div>`;
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
@@ -747,7 +747,7 @@ function buildDetailView() {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml  = `
       <div class="detail-timer-label" style="color:var(--break)">הפסקה — נחזור בעוד</div>
-      <div class="detail-timer" style="color:var(--break);text-shadow:0 0 40px rgba(255,152,0,.35);" id="detail-timer">${formatTimer(secs)}</div>`;
+      <div class="detail-timer" style="color:var(--break);text-shadow:0 0 40px rgba(255,152,0,.35);" id="detail-timer">${timerCells(secs)}</div>`;
     secondaryHtml = `<div class="detail-actions-row">${REOPEN_BTN}</div>`;
   } else if (st === 'closed') {
     infoHtml      = `<div class="detail-info-box" style="background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);color:var(--closed);">🔴 המתחם סגור</div>`;
@@ -776,10 +776,10 @@ function tickDetailView() {
   const now = Date.now();
   if (st === 'running' && s.sessionEndTime) {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
-    timerEl.textContent = formatTimer(secs);
+    setTimerText(timerEl, secs);
     timerEl.className   = `detail-timer${secs<60?' danger':secs<180?' warn':''}`;
   } else if (st === 'break' && s.breakEndTime) {
-    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.breakEndTime - now)/1000)));
+    setTimerText(timerEl, Math.max(0, Math.round((s.breakEndTime - now)/1000)));
   }
 }
 
@@ -963,7 +963,7 @@ function buildPopup() {
     midEl.className = 'popup-mid iframe-mode';
     hudEl.classList.add('visible');
     const hudVal = document.getElementById('popup-timer-hud');
-    if (hudVal) { hudVal.textContent = formatTimer(secs); hudVal.className = `popup-hud-val ${cls}`; }
+    if (hudVal) { setTimerText(hudVal, secs); hudVal.className = `popup-hud-val ${cls}`; }
     midEl.innerHTML = `
       <div class="popup-prog-strip progress">
         <div class="progress__fill progress__fill--running" id="popup-prog" style="width:${pct}%"></div>
@@ -983,7 +983,7 @@ function buildPopup() {
       <div class="popup-pill">🟢 פעילות מתקיימת</div>
       <div class="popup-timer-wrap">
         <div class="popup-timer-lbl">נותר לפעילות</div>
-        <div class="popup-timer-big ${cls}" id="popup-timer-main">${formatTimer(secs)}</div>
+        <div class="popup-timer-big ${cls}" id="popup-timer-main">${timerCells(secs)}</div>
       </div>
       <div class="popup-prog-wrap progress">
         <div class="progress__fill progress__fill--running" id="popup-prog" style="width:${pct}%"></div>
@@ -1008,9 +1008,9 @@ function tickPopup() {
   const progEl = document.getElementById('popup-prog');
   if (progEl) progEl.style.width = pct + '%';
   const hudVal = document.getElementById('popup-timer-hud');
-  if (hudVal) { hudVal.textContent = formatTimer(secs); hudVal.className = `popup-hud-val ${cls}`; }
+  if (hudVal) { setTimerText(hudVal, secs); hudVal.className = `popup-hud-val ${cls}`; }
   const mainTimer = document.getElementById('popup-timer-main');
-  if (mainTimer) { mainTimer.textContent = formatTimer(secs); mainTimer.className = `popup-timer-big ${cls}`; }
+  if (mainTimer) { setTimerText(mainTimer, secs); mainTimer.className = `popup-timer-big ${cls}`; }
 }
 
 // ── Chat system ──

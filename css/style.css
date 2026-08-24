@@ -83,6 +83,13 @@ a:hover { text-decoration: underline; }
 
 .font-display { font-family: var(--font-display); }
 
+/* Fixed-width timer digits. Orbitron has no tabular figures and ignores
+   font-variant-numeric, so without this a ticking clock shifts every second.
+   Cells are sized in ch, so they track whatever font-size the timer uses.
+   Built by timerCells() / setTimerText() in utils.js. */
+.td       { display: inline-block; width: 1ch; text-align: center; font-style: normal; }
+.td--sep  { width: .5ch; }
+
 /* ── Layout ── */
 .container        { max-width:1200px; margin:0 auto; padding:0 24px; }
 .container--narrow{ max-width:640px;  margin:0 auto; padding:0 24px; }
