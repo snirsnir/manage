@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -111,7 +111,7 @@
       transition: background .3s;
     }
     .picker-card.status-running::before  { background: var(--running); }
-    .picker-card.status-boarding::before { background: var(--boarding); }
+    .picker-card.status-boarding::before { background: var(--setup); }   /* legacy */
     .picker-card.status-setup::before    { background: var(--setup); }
     .picker-card.status-idle::before     { background: var(--idle); }
     .picker-card.status-closed::before   { background: var(--closed); }
@@ -235,14 +235,14 @@
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2;
     }
     .disp-cell.status-idle::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(84,110,122,.22) 0%, transparent 68%); }
-    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.2) 0%, transparent 68%); }
+    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,193,7,.18) 0%, transparent 68%); }   /* legacy */
     .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(33,150,243,.2) 0%, transparent 68%); }
     .disp-cell.status-setup::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,193,7,.17) 0%, transparent 68%); }
     .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.2) 0%, transparent 68%); }
     .disp-cell.status-break::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,152,0,.2) 0%, transparent 68%); }
 
     .disp-cell.status-idle::after     { background: var(--idle);    }
-    .disp-cell.status-boarding::after { background: var(--boarding); box-shadow: 0 0 12px var(--boarding); }
+    .disp-cell.status-boarding::after { background: var(--setup); box-shadow: 0 0 12px var(--setup); }   /* legacy */
     .disp-cell.status-running::after  { background: var(--running); }
     .disp-cell.status-setup::after    { background: var(--setup);   }
     .disp-cell.status-closed::after   { background: var(--closed);  }
@@ -273,7 +273,7 @@
       box-shadow: 0 0 18px currentColor;
     }
     .disp-label.status-idle     { color: var(--idle);    }
-    .disp-label.status-boarding { color: var(--boarding); animation: pulse-disp 2s ease-in-out infinite; }
+    .disp-label.status-boarding { color: var(--setup); }   /* legacy */
     .disp-label.status-running  { color: var(--running); }
     .disp-label.status-setup    { color: var(--setup);   }
     .disp-label.status-closed   { color: var(--closed);  }
@@ -283,8 +283,6 @@
       0%,100% { opacity: 1;  }
       50%     { opacity: .55; }
     }
-
-    .disp-boarding-msg { font-size: clamp(.75rem,1.8vw,1.5rem); font-weight: 700; color: var(--boarding); }
 
     .disp-next {
       /* backdrop-filter: blur() dropped — it is recomputed continuously and is
@@ -439,7 +437,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -798,9 +796,6 @@ function buildCell(s, id) {
   let mid = '';
   if (st === 'idle') {
     mid = `${header}<div class="disp-icon">⬜</div>${label}`;
-  } else if (st === 'boarding') {
-    mid = `${header}<div class="disp-icon">🟢</div>${label}
-      <div class="disp-boarding-msg">הכנסו עכשיו!</div>`;
   } else if (st === 'running') {
     const nxt = s.nextSessionTime ? `
       <div class="disp-next">
@@ -809,14 +804,13 @@ function buildCell(s, id) {
         <div class="disp-next-rel"  id="rel-${id}">${formatTimeUntil(s.nextSessionTime)}</div>
       </div>` : '';
     mid = `${header}<div class="disp-icon">🔵</div>${label}${nxt}`;
-  } else if (st === 'setup') {
-    const nxt = s.nextSessionTime ? `
+  } else if (st === 'setup' || st === 'boarding') {
+    // Setup waits for the instructor, so no clock time can be promised here.
+    mid = `${header}<div class="disp-icon">🟡</div>${label}
       <div class="disp-next">
-        <div class="disp-next-lbl">הסבב הבא ב-</div>
-        <div class="disp-next-time" id="next-${id}">${formatTime(s.nextSessionTime)}</div>
-        <div class="disp-next-rel"  id="rel-${id}">${formatTimeUntil(s.nextSessionTime)}</div>
-      </div>` : '';
-    mid = `${header}<div class="disp-icon">🟡</div>${label}${nxt}`;
+        <div class="disp-next-lbl">הפעילות הבאה</div>
+        <div class="disp-next-time">תתחיל בקרוב</div>
+      </div>`;
   } else if (st === 'break') {
     const secs = s.breakEndTime ? Math.max(0,Math.round((s.breakEndTime-now)/1000)) : 1800;
     mid = `${header}<div class="disp-icon">☕</div>

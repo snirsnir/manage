@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הגדרת מתחמים</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <style>
     body { padding: 40px 32px; max-width: 680px; margin: 0 auto; }
     h1   { font-size: 1.6rem; font-weight: 900; margin-bottom: 8px; }
@@ -41,7 +41,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script>
 const now = Date.now();
 
@@ -49,15 +49,11 @@ function makeStation(id, name, topic, topicColor, videoUrl, order, floor) {
   return {
     id, name, topic, topicColor, videoUrl, order, floor: floor || 'other',
     activityDuration:    25,
-    setupDuration:       7,
-    boardingDuration:    3,
     autoTransitionDelay: 3,
     status:              'idle',
     sessionStartTime:    0,
     sessionEndTime:      0,
     nextSessionTime:     0,
-    boardingStartTime:   0,
-    boardingEndTime:     0,
     setupStartTime:      0,
     setupEndTime:        0,
     extensions:          0,

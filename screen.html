@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך מעבדה | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     * { cursor: none; }
@@ -34,7 +34,7 @@
       transition: background 0.8s;
     }
     .screen-ui.status-idle::before     { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(84,110,122,.25) 0%, transparent 70%); }
-    .screen-ui.status-boarding::before { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,230,118,.2)  0%, transparent 70%); }
+    .screen-ui.status-boarding::before { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,193,7,.18) 0%, transparent 70%); }   /* legacy */
     .screen-ui.status-setup::before    { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,193,7,.18) 0%, transparent 70%); }
     .screen-ui.status-closed::before   { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(244,67,54,.2)  0%, transparent 70%); }
     .screen-ui > * { position: relative; z-index: 1; }
@@ -55,7 +55,7 @@
       padding:18px 64px;border-radius:100px;border:3px solid currentColor;
       box-shadow:0 0 40px currentColor;
     }
-    .screen-status-pill.status-boarding { color:var(--boarding); animation:glow-boarding 2s ease-in-out infinite; }
+    .screen-status-pill.status-boarding { color:var(--setup); }   /* legacy */
     .screen-status-pill.status-setup    { color:var(--setup); }
     .screen-status-pill.status-closed   { color:var(--closed); }
     .screen-status-pill.status-idle     { color:var(--idle); border-color:rgba(84,110,122,.4); box-shadow:none; }
@@ -70,17 +70,8 @@
       letter-spacing:8px;font-variant-numeric:tabular-nums;
     }
     .break-screen-sub   { font-size:2rem;color:rgba(255,152,0,.5);margin-top:8px; }
-    @keyframes glow-boarding { 0%,100%{box-shadow:0 0 30px var(--boarding)} 50%{box-shadow:0 0 60px var(--boarding),0 0 100px rgba(0,230,118,.3)} }
 
     /* Boarding countdown */
-    .boarding-countdown { text-align:center; }
-    .boarding-countdown .label { font-size:1.4rem;color:var(--text-300);margin-bottom:12px; }
-    .boarding-countdown .num {
-      font-family:var(--font-display);font-size:8rem;font-weight:900;
-      color:var(--boarding);text-shadow:0 0 40px rgba(0,230,118,.6);
-      letter-spacing:6px;
-    }
-    .boarding-countdown .suf { font-size:1.8rem;color:var(--text-300); }
 
     /* Next session (setup state) */
     .next-block {
@@ -137,7 +128,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 
 <!-- YouTube IFrame API -->
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -292,12 +283,6 @@ function renderScreenUI(st) {
       <div class="screen-status-icon">⬜</div>
       <div class="screen-status-pill status-idle">ממתין לפתיחה</div>`;
 
-  } else if (st === 'boarding') {
-    mid.innerHTML = `
-      ${header}
-      <div class="screen-status-icon">🟢</div>
-      <div class="screen-status-pill status-boarding">הכנסו!</div>`;
-
   } else if (st === 'running') {
     // Video ended or no video — show in-progress placeholder
     mid.innerHTML = `
@@ -305,16 +290,12 @@ function renderScreenUI(st) {
       <div class="screen-status-icon">🔵</div>
       <div class="screen-status-pill" style="color:var(--running);border-color:var(--running);box-shadow:0 0 40px var(--running);">בפעילות</div>`;
 
-  } else if (st === 'setup') {
+  } else if (st === 'setup' || st === 'boarding') {
+    // No countdown — the next activity starts when the instructor is ready.
     mid.innerHTML = `
       ${header}
       <div class="thank-you">תודה! 🙌</div>
-      ${station.nextSessionTime ? `
-        <div class="next-block">
-          <div class="nl">הסבב הבא מתחיל ב-</div>
-          <div class="nt" id="sc-next-time">${formatTime(station.nextSessionTime)}</div>
-          <div class="nr" id="sc-next-rel">${formatTimeUntil(station.nextSessionTime)}</div>
-        </div>` : '<div class="screen-status-pill status-setup">מתארגנים — חזרו בקרוב</div>'}`;
+      <div class="screen-status-pill status-setup">הפעילות הבאה תתחיל בקרוב</div>`;
 
   } else if (st === 'closed') {
     mid.innerHTML = `

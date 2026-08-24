@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -82,12 +82,12 @@
       content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 4px;
     }
     .tbl-row.status-idle::before     { background: var(--idle); }
-    .tbl-row.status-boarding::before { background: var(--boarding); box-shadow: 0 0 8px var(--boarding); }
+    .tbl-row.status-boarding::before { background: var(--setup); box-shadow: 0 0 8px var(--setup); }   /* legacy */
     .tbl-row.status-running::before  { background: var(--running);  box-shadow: 0 0 8px var(--running); }
     .tbl-row.status-setup::before    { background: var(--setup);    box-shadow: 0 0 8px var(--setup); }
     .tbl-row.status-closed::before   { background: var(--closed); }
     .tbl-row.status-break::before    { background: var(--break); }
-    .tbl-row.status-boarding { border-color: rgba(0,230,118,.3); background: rgba(0,230,118,.04); }
+    .tbl-row.status-boarding { border-color: rgba(255,193,7,.3); background: rgba(255,193,7,.04); }   /* legacy */
     .tbl-name  { font-size: 1rem; font-weight: 800; color: var(--text-100); white-space: nowrap; text-overflow: ellipsis; }
     .tbl-topic { font-size: .9rem; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
     .tbl-timer { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -150,14 +150,14 @@
 
     /* Status colors */
     .color-idle     { color: var(--idle);     }
-    .color-boarding { color: var(--boarding); }
+    .color-boarding { color: var(--setup); }   /* legacy */
     .color-running  { color: var(--running);  }
     .color-setup    { color: var(--setup);    }
     .color-closed   { color: var(--closed);   }
 
     /* Top highlight bar per status */
     .dash-card.status-idle::before     { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--idle); }
-    .dash-card.status-boarding::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--boarding);box-shadow:0 0 10px var(--boarding); }
+    .dash-card.status-boarding::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--setup);box-shadow:0 0 10px var(--setup); }   /* legacy */
     .dash-card.status-running::before  { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--running); box-shadow:0 0 10px var(--running);  }
     .dash-card.status-setup::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--setup);   box-shadow:0 0 10px var(--setup);    }
     .dash-card.status-closed::before   { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--closed);  box-shadow:0 0 10px var(--closed);   }
@@ -379,7 +379,6 @@
   <!-- Summary chips / filter toggles -->
   <div class="summary-bar" id="summary-bar">
     <div class="summary-chip" data-filter="running"  onclick="toggleFilter('running')" ><span class="count" id="cnt-running"  style="color:var(--running)">-</span> בפעילות</div>
-    <div class="summary-chip" data-filter="boarding" onclick="toggleFilter('boarding')"><span class="count" id="cnt-boarding" style="color:var(--boarding)">-</span> קליטת קהל</div>
     <div class="summary-chip" data-filter="setup"    onclick="toggleFilter('setup')"   ><span class="count" id="cnt-setup"    style="color:var(--setup)">-</span> התארגנות</div>
     <div class="summary-chip" data-filter="break"    onclick="toggleFilter('break')"   ><span class="count" id="cnt-break"    style="color:var(--break)">-</span> בהפסקה</div>
     <div class="summary-chip" data-filter="closed"   onclick="toggleFilter('closed')"  ><span class="count" id="cnt-closed"   style="color:var(--closed)">-</span> סגורים</div>
@@ -436,7 +435,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -550,9 +549,10 @@ stationsRef().on('value', snap => {
 startAutoTransitionWatcher(() => stations);
 
 function updateSummary() {
-  const counts = { idle:0, boarding:0, running:0, setup:0, closed:0, break:0 };
+  const counts = { idle:0, running:0, setup:0, closed:0, break:0 };
   Object.values(stations).forEach(s => {
-    const st = s.status || 'idle';
+    let st = s.status || 'idle';
+    if (st === 'boarding') st = 'setup';   // legacy status folds into setup
     if (counts[st] !== undefined) counts[st]++;
     else counts.idle++;
   });
@@ -678,7 +678,6 @@ function buildCardHTML(s, gridStyle = '') {
       <div class="actions-row actions-row--status">
         <button class="btn btn--success" onclick="managerTransition('${s.id}','running')"  title="בפעילות">🟢 פעילות</button>
         <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"    title="הכנה לפעילות חדשה">🟡 הכנה</button>
-        <button class="btn btn--primary" onclick="managerTransition('${s.id}','boarding')" title="קליטת קהל">🔵 קליטה</button>
       </div>
       <div class="actions-row" style="justify-content:space-between;align-items:center;">
         <span style="font-size:.63rem;color:var(--text-400);font-weight:600;white-space:nowrap;padding-right:2px;">הוסף/הורד זמן</span>
@@ -714,7 +713,6 @@ function buildTableRowHTML(s) {
       <div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
         <button class="btn btn--success" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🟢 פעילות</button>
         <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 הכנה</button>
-        <button class="btn btn--primary" style="${btnSm}" onclick="managerTransition('${s.id}','boarding')">🔵 קליטה</button>
       </div>
       <div style="display:flex;gap:4px;align-items:center;">
         <button class="btn btn--reduce" style="${btnSm}" onclick="addTime('${s.id}',-2)">2-</button>
@@ -744,28 +742,29 @@ function tickTableRow(id) {
 
   if (st === 'running' && s.sessionEndTime)
     secs = Math.max(0, Math.round((s.sessionEndTime - now) / 1000));
-  else if (st === 'setup' && s.setupEndTime)
-    secs = Math.max(0, Math.round((s.setupEndTime - now) / 1000));
-  else if (st === 'boarding' && s.boardingEndTime)
-    secs = Math.max(0, Math.round((s.boardingEndTime - now) / 1000));
   else if (st === 'break' && s.breakEndTime)
     secs = Math.max(0, Math.round((s.breakEndTime - now) / 1000));
 
   if (secs) {
     timerEl.textContent = formatTimer(secs);
     if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--closed)' : 'var(--running)';
+  } else if (st === 'setup' || st === 'boarding') {
+    // setup has no timer — it waits for the instructor
+    timerEl.textContent = 'ממתין';
+    timerEl.style.color = 'var(--setup)';
   } else {
     timerEl.textContent = '--:--';
   }
 
-  if (nextEl && s.nextSessionTime) {
-    const minsUntil = Math.round((s.nextSessionTime - now) / 60000);
-    const isSoon    = minsUntil >= 0 && minsUntil <= 5;
-    nextEl.innerHTML = `<strong>${formatTime(s.nextSessionTime)}</strong>
-      <span style="color:${isSoon ? 'var(--boarding)' : 'var(--text-400)'}"> ${formatTimeUntil(s.nextSessionTime)}</span>`;
-    nextEl.style.color = isSoon ? 'var(--boarding)' : '';
-  } else if (nextEl) {
-    nextEl.textContent = '—';
+  if (nextEl) {
+    // Setup waits for a person, so there is no next-session clock time to show.
+    if (st === 'setup' || st === 'boarding') {
+      nextEl.textContent = 'יתחיל בקרוב';
+      nextEl.style.color = 'var(--setup)';
+    } else {
+      nextEl.textContent = '—';
+      nextEl.style.color = '';
+    }
   }
 }
 
@@ -801,19 +800,15 @@ function tickCard(id) {
     if (secs === 0) timerEl.className = 'dash-card__timer color-closed';
     else timerEl.className = `dash-card__timer color-${st}`;
 
-  } else if (st === 'setup' && s.setupEndTime) {
-    secs = Math.max(0, Math.round((s.setupEndTime - now) / 1000));
-    const total = (s.setupDuration||7)*60;
-    pct = Math.min(100, Math.round((total - secs) / total * 100));
-    labelEl.textContent = 'להכנה';
-    timerEl.className = 'dash-card__timer color-setup';
-
-  } else if (st === 'boarding' && s.boardingEndTime) {
-    secs = Math.max(0, Math.round((s.boardingEndTime - now) / 1000));
-    const total = (s.boardingDuration||3)*60;
-    pct = Math.min(100, Math.round((total - secs) / total * 100));
-    labelEl.textContent = 'לקליטה';
-    timerEl.className = 'dash-card__timer color-boarding';
+  } else if (st === 'setup' || st === 'boarding') {
+    // No countdown — waiting for the instructor to start the next activity
+    timerEl.textContent = 'ממתין';
+    timerEl.className   = 'dash-card__timer color-setup';
+    if (labelEl) labelEl.textContent = 'להתחלה';
+    if (nextEl)  nextEl.innerHTML = '<span style="color:var(--setup)">הפעילות הבאה תתחיל בקרוב</span>';
+    if (progEl)  progEl.style.width = '0%';
+    if (delayEl) delayEl.innerHTML = '';
+    return;
 
   } else if (st === 'break' && s.breakEndTime) {
     secs = Math.max(0, Math.round((s.breakEndTime - now) / 1000));

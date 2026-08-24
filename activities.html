@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -50,7 +50,7 @@
     .act-card:active { transform: scale(.96); }
 
     .act-card.status-running::before  { background: var(--running);  box-shadow: 0 0 8px var(--running);  }
-    .act-card.status-boarding::before { background: var(--boarding); }
+    .act-card.status-boarding::before { background: var(--setup); }   /* legacy */
     .act-card.status-setup::before    { background: var(--setup);    }
     .act-card.status-idle::before     { background: var(--idle);     }
     .act-card.status-closed::before   { background: var(--closed);   }
@@ -583,7 +583,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -734,28 +734,11 @@ function buildDetailView() {
       </div>`;
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
     secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
-  } else if (st === 'setup') {
-    const secs = s.setupEndTime ? Math.max(0, Math.round((s.setupEndTime - now)/1000)) : 0;
-    timerHtml  = `
-      <div class="detail-timer-label" style="color:var(--setup)">⏳ זמן הכנה נותר</div>
-      <div class="detail-timer-row">
-        <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
-        <div class="detail-timer" style="color:var(--setup);text-shadow:0 0 40px rgba(255,193,7,.35);" id="detail-timer">${formatTimer(secs)}</div>
-        <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
-      </div>`;
-    infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);">מתארגנים — הסבב הבא יפתח בקרוב</div>`;
-    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל עכשיו ▶</button>`;
-    secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
-  } else if (st === 'boarding') {
-    const secs = s.boardingEndTime ? Math.max(0, Math.round((s.boardingEndTime - now)/1000)) : 0;
-    timerHtml  = `
-      <div class="detail-timer-label" style="color:var(--boarding)">🔵 זמן קליטת קהל נותר</div>
-      <div class="detail-timer-row">
-        <button class="detail-adjust-btn" onclick="adjustTimer(-1)">−1 דקה</button>
-        <div class="detail-timer" style="color:var(--boarding);text-shadow:0 0 40px rgba(33,150,243,.35);" id="detail-timer">${formatTimer(secs)}</div>
-        <button class="detail-adjust-btn" onclick="adjustTimer(1)">+1 דקה</button>
-      </div>`;
-    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">התחל פעילות עכשיו ▶</button>`;
+  } else if (st === 'setup' || st === 'boarding') {
+    // No countdown — the station waits here until the instructor starts the
+    // next activity. ('boarding' is legacy and renders the same way.)
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);font-size:1rem;">⏳ מתארגנים לפעילות הבאה — התחילו כשאתם מוכנים</div>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">▶ התחל פעילות חדשה</button>`;
     secondaryHtml = `<div class="detail-actions-row">${BREAK_BTN}${CLOSE_BTN}</div>`;
   } else if (st === 'idle') {
     actionHtml    = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
@@ -795,10 +778,6 @@ function tickDetailView() {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
     timerEl.textContent = formatTimer(secs);
     timerEl.className   = `detail-timer${secs<60?' danger':secs<180?' warn':''}`;
-  } else if (st === 'setup' && s.setupEndTime) {
-    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.setupEndTime - now)/1000)));
-  } else if (st === 'boarding' && s.boardingEndTime) {
-    timerEl.textContent = formatTimer(Math.max(0, Math.round((s.boardingEndTime - now)/1000)));
   } else if (st === 'break' && s.breakEndTime) {
     timerEl.textContent = formatTimer(Math.max(0, Math.round((s.breakEndTime - now)/1000)));
   }
@@ -807,18 +786,11 @@ function tickDetailView() {
 async function adjustTimer(minutes) {
   const s = stations[selectedId];
   if (!s) return;
-  const extraMs = minutes * 60 * 1000;
-  const label   = minutes > 0 ? 'נוספה דקה' : 'הוסרה דקה';
+  const label = minutes > 0 ? 'נוספה דקה' : 'הוסרה דקה';
   try {
-    if (s.status === 'running') {
-      await extendSession(selectedId, s, minutes);
-    } else if (s.status === 'setup' && s.setupEndTime) {
-      const newEnd = Math.max(Date.now() + 10000, s.setupEndTime + extraMs);
-      await stationRef(selectedId).update({ setupEndTime: newEnd, lastUpdated: Date.now() });
-    } else if (s.status === 'boarding' && s.boardingEndTime) {
-      const newEnd = Math.max(Date.now() + 10000, s.boardingEndTime + extraMs);
-      await stationRef(selectedId).update({ boardingEndTime: newEnd, lastUpdated: Date.now() });
-    } else { return; }
+    // running is the only timed state, so it is the only one to adjust
+    if (s.status !== 'running') return;
+    await extendSession(selectedId, s, minutes);
     showToast(label, 'success', 2000);
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
@@ -868,13 +840,10 @@ async function reopenStation() {
 async function startNow() {
   const s = stations[selectedId];
   if (!s) return;
-  const AUTO_NEXT = { setup: 'boarding', boarding: 'running' };
-  const next = AUTO_NEXT[s.status];
-  if (!next) return;
+  if (s.status !== 'setup' && s.status !== 'boarding') return;
   try {
-    await transitionStation(selectedId, next, s, { manual: true, skip: true });
-    if (next === 'running') openPopup();
-    else buildDetailView();
+    await transitionStation(selectedId, 'running', s, { manual: true, skip: true });
+    openPopup();
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
   }

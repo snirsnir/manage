@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -76,13 +76,13 @@
       border-radius:0 var(--r-md) var(--r-md) 0; transition:background .4s;
     }
     .board-row.status-idle::before     { background:var(--idle); }
-    .board-row.status-boarding::before { background:var(--boarding); box-shadow:0 0 8px var(--boarding); }
+    .board-row.status-boarding::before { background:var(--setup); box-shadow:0 0 8px var(--setup); }   /* legacy */
     .board-row.status-running::before  { background:var(--running);  box-shadow:0 0 8px var(--running);  }
     .board-row.status-setup::before    { background:var(--setup);    box-shadow:0 0 8px var(--setup);    }
     .board-row.status-closed::before   { background:var(--closed);   }
     .board-row.status-break::before    { background:var(--break);    }
 
-    .board-row.status-boarding { border-color:rgba(0,230,118,.3); background:rgba(0,230,118,.05); }
+    .board-row.status-boarding { border-color:rgba(255,193,7,.3); background:rgba(255,193,7,.05); }   /* legacy */
     .board-row.status-running  { border-color:rgba(33,150,243,.3); }
 
     .row-name  { font-size:1.25rem; font-weight:800; color:var(--text-100);
@@ -361,7 +361,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -464,8 +464,8 @@ stationsRef().on('value', snap => {
 
 function getSortedStations() {
   return Object.values(stations).sort((a, b) => {
-    // Sort: active first (boarding > running > setup > idle > closed), then by next session time
-    const priority = { boarding:0, running:1, setup:2, idle:3, break:4, closed:5 };
+    // Sort: running first, then the labs waiting to start, then the rest
+    const priority = { running:0, setup:1, boarding:1, idle:3, break:4, closed:5 };
     const pa = priority[a.status||'idle'] ?? 3;
     const pb = priority[b.status||'idle'] ?? 3;
     if (pa !== pb) return pa - pb;
@@ -521,23 +521,22 @@ function buildRow(s) {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
     const color = secs < 180 ? 'var(--closed)' : secs < 300 ? 'var(--setup)' : 'var(--running)';
     timerHtml = `<span class="row-time" id="t-${s.id}" style="color:${color}">${formatTimer(secs)}</span>`;
-  } else if (st === 'setup' && s.setupEndTime) {
-    const secs = Math.max(0, Math.round((s.setupEndTime - now)/1000));
-    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--setup)">${formatTimer(secs)}</span>`;
-  } else if (st === 'boarding' && s.boardingEndTime) {
-    const secs = Math.max(0, Math.round((s.boardingEndTime - now)/1000));
-    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--boarding)">${formatTimer(secs)}</span>`;
+  } else if (st === 'setup' || st === 'boarding') {
+    timerHtml = `<span class="row-time" style="color:var(--setup);font-size:1.05rem">ממתין</span>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
     timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--break)">${formatTimer(secs)}</span>`;
   }
 
-  if (s.nextSessionTime) {
+  // Setup waits for the instructor, so there is no clock time to promise.
+  if (st === 'setup' || st === 'boarding') {
+    nextHtml = `<span class="row-next" style="color:var(--setup);font-weight:700">הסבב הבא יתחיל בקרוב</span>`;
+  } else if (s.nextSessionTime) {
     const minsUntil = Math.round((s.nextSessionTime - now)/60000);
     const isSoon    = minsUntil <= 5 && minsUntil >= 0;
     nextHtml = `<span class="row-next ${isSoon?'next-soon':''}" id="n-${s.id}">
       <strong>${formatTime(s.nextSessionTime)}</strong>
-      <span style="font-size:.85rem;color:${isSoon?'var(--boarding)':'var(--text-400)'}">
+      <span style="font-size:.85rem;color:${isSoon?'var(--setup)':'var(--text-400)'}">
         ${formatTimeUntil(s.nextSessionTime)}
       </span>
     </span>`;
@@ -578,8 +577,6 @@ function tickBoard() {
     if (tEl) {
       let secs = 0;
       if (st === 'running'  && s.sessionEndTime)  secs = Math.max(0, Math.round((s.sessionEndTime  - now)/1000));
-      if (st === 'setup'    && s.setupEndTime)     secs = Math.max(0, Math.round((s.setupEndTime    - now)/1000));
-      if (st === 'boarding' && s.boardingEndTime)  secs = Math.max(0, Math.round((s.boardingEndTime - now)/1000));
       if (st === 'break'    && s.breakEndTime)     secs = Math.max(0, Math.round((s.breakEndTime    - now)/1000));
       tEl.textContent = formatTimer(secs);
       if (st === 'running' && secs < 180) tEl.style.color = secs < 60 ? 'var(--closed)' : 'var(--setup)';
@@ -590,7 +587,7 @@ function tickBoard() {
       const isSoon    = minsUntil <= 5 && minsUntil >= 0;
       nEl.innerHTML = `
         <strong>${formatTime(s.nextSessionTime)}</strong>
-        <span style="font-size:.85rem;color:${isSoon?'var(--boarding)':'var(--text-400)'}">
+        <span style="font-size:.85rem;color:${isSoon?'var(--setup)':'var(--text-400)'}">
           ${formatTimeUntil(s.nextSessionTime)}
         </span>`;
       nEl.className = `row-next ${isSoon?'next-soon':''}`;

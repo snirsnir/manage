@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>מדריך | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824">
+  <link rel="stylesheet" href="css/style.css?v=20260824b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -241,7 +241,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824"></script>
+<script src="js/utils.js?v=20260824b"></script>
 <script>
 const stationId = getParam('station');
 if (!stationId) {
@@ -249,12 +249,12 @@ if (!stationId) {
 }
 
 // ── מחזור אוטומטי ──
-// boarding → running → setup → boarding → ...
-const AUTO_NEXT = { running: 'setup', setup: 'boarding', boarding: 'running' };
+// running → setup → (instructor presses the button) → running
+// Only running is timed, so it is the only automatic hop.
+const AUTO_NEXT = { running: 'setup' };
 const AUTO_LABELS = {
-  boarding: 'מתחיל פעילות...',
   running:  'עובר להכנה...',
-  setup:    'פותח קליטה...'
+  setup:    'מתחיל פעילות...'
 };
 
 let station           = null;
@@ -299,7 +299,7 @@ function renderStation() {
   if (!station) return;
   const st    = station.status || 'idle';
   const color = station.topicColor || 'var(--cyan)';
-  const inCycle = ['boarding', 'running', 'setup'].includes(st);
+  const inCycle = ['running', 'setup'].includes(st);
 
   // כרטיס מתחם
   const instructorName = station.instructorName || '';
@@ -355,9 +355,9 @@ function updateMainButton(st, inCycle) {
   btn.className = 'btn btn--xxl';
 
   if (st === 'idle') {
-    btn.textContent = '🚀 התחל מחזור';
+    btn.textContent = '🚀 התחל פעילות';
     btn.classList.add('btn--success');
-    btn.onclick = () => doManualTransition('boarding');
+    btn.onclick = () => doManualTransition('running');
     return;
   }
   if (st === 'closed') {
@@ -374,22 +374,17 @@ function updateMainButton(st, inCycle) {
     return;
   }
 
-  // boarding — מעבר ידני ישיר לפעילות (אין AUTO_NEXT לקליטה)
-  if (st === 'boarding') {
-    btn.textContent = '▶ התחל פעילות עכשיו';
+  // setup has no timer — it waits here until the instructor starts the next one
+  if (st === 'setup' || st === 'boarding') {
+    btn.textContent = '▶ התחל פעילות חדשה';
     btn.classList.add('btn--success');
     btn.onclick = () => doManualTransition('running');
     return;
   }
 
-  // בתוך מחזור — הכפתור מדלג לשלב הבא ידנית
-  const skipLabels = {
-    running: { label: '⏹ סיים פעילות',        cls: 'btn--danger'  },
-    setup:   { label: '🚪 פתח קליטה עכשיו',  cls: 'btn--success' }
-  };
-  const a = skipLabels[st] || { label: '▶', cls: 'btn--secondary' };
-  btn.textContent = a.label;
-  btn.classList.add(a.cls);
+  // running — the button ends the activity early and drops into setup
+  btn.textContent = '⏹ סיים פעילות';
+  btn.classList.add('btn--danger');
   btn.onclick = () => doSkipToNext();
 }
 
@@ -420,23 +415,16 @@ function tickTimer() {
     sub     = `התחיל: ${formatTime(station.sessionStartTime)}`;
     progClass = 'progress__fill--running';
 
-  } else if (st === 'boarding' && station.boardingEndTime) {
-    endTime = station.boardingEndTime;
-    total   = (station.boardingDuration || 3) * 60;
-    secs    = Math.max(0, Math.round((endTime - now) / 1000));
-    pct     = Math.min(100, Math.round(((total - secs) / total) * 100));
-    label   = 'קליטת קהל';
-    sub     = 'הפעילות הבאה מתחילה בקרוב...';
-    progClass = 'progress__fill--setup';
-
-  } else if (st === 'setup' && station.setupEndTime) {
-    endTime = station.setupEndTime;
-    total   = (station.setupDuration || 7) * 60;
-    secs    = Math.max(0, Math.round((endTime - now) / 1000));
-    pct     = Math.min(100, Math.round(((total - secs) / total) * 100));
-    label   = 'התארגנות';
-    sub     = 'הכנה לסבב הבא...';
-    progClass = 'progress__fill--setup';
+  } else if (st === 'setup' || st === 'boarding') {
+    // No countdown here — the station waits for the instructor.
+    timerEl.textContent = '—';
+    timerEl.className   = 'timer-display';
+    timerEl.style.color = 'var(--setup)';
+    labelEl.textContent = 'הכנה לפעילות חדשה';
+    labelEl.style.color = 'var(--setup)';
+    subEl.textContent   = 'לחץ "התחל פעילות חדשה" כשאתם מוכנים';
+    progEl.style.width  = '0%';
+    return;
 
   } else if (st === 'break' && station.breakEndTime) {
     endTime = station.breakEndTime;
@@ -462,7 +450,7 @@ function tickTimer() {
     timerEl.style.color = '';
     labelEl.textContent = STATUS[st]?.label || '';
     labelEl.style.color = '';
-    subEl.textContent   = st === 'idle' ? 'לחץ "התחל מחזור" כדי להתחיל' : '';
+    subEl.textContent   = st === 'idle' ? 'לחץ "התחל פעילות" כדי להתחיל' : '';
     progEl.style.width  = '0%';
     return;
   }
@@ -471,8 +459,8 @@ function tickTimer() {
   timerEl.className   = `timer-display ${secs < 60 ? 'timer-display--danger' : secs < 180 ? 'timer-display--warn' : ''}`;
   timerEl.style.color = '';
   labelEl.textContent = label;
-  labelEl.style.color    = st === 'setup' ? 'var(--setup)' : st === 'boarding' ? 'var(--boarding)' : '';
-  labelEl.style.fontSize = st === 'setup' ? '1rem'         : '';
+  labelEl.style.color    = '';
+  labelEl.style.fontSize = '';
   subEl.textContent   = sub;
   progEl.className    = `progress__fill ${progClass}`;
   progEl.style.width  = pct + '%';

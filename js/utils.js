@@ -6,7 +6,9 @@ const STATUS = {
   idle:     { label: 'המתנה',              css: 'idle',     icon: '⬜' },
   running:  { label: 'בפעילות',            css: 'running',  icon: '🟢' },
   setup:    { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
-  boarding: { label: 'קליטת קהל',          css: 'boarding', icon: '🔵' },
+  // legacy — boarding is out of the flow; the watcher migrates leftovers to
+  // setup, but a station can still render once before that lands.
+  boarding: { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
   closed:   { label: 'סגור / תקלה',        css: 'closed',   icon: '🔴' },
   break:    { label: 'הפסקה',              css: 'break',    icon: '☕' }
 };
@@ -15,7 +17,7 @@ const STATUS_COLORS = {
   idle:     '#546e7a',
   running:  '#00e676',   // ירוק
   setup:    '#ffc107',   // צהוב
-  boarding: '#2196f3',   // כחול
+  boarding: '#ffc107',   // legacy, renders as setup
   closed:   '#f44336',
   break:    '#ff9800'    // כתום
 };
@@ -130,20 +132,21 @@ async function transitionStation(stationId, newStatus, station, extraData = {}) 
 
   if (newStatus === 'running') {
     const durMs = (station.activityDuration || 25) * 60 * 1000;
-    const setupMs = (station.setupDuration || 7) * 60 * 1000;
     update.sessionStartTime = now;
     update.sessionEndTime   = now + durMs;
-    update.nextSessionTime  = now + durMs + setupMs;
+    // Setup waits for the instructor, so the next session's start time is not
+    // knowable in advance. Screens show "יתחיל בקרוב" instead of a clock time.
+    update.nextSessionTime  = 0;
+    update.setupStartTime   = 0;
+    update.setupEndTime     = 0;
     update.extensions       = 0;
     update.totalExtensionMinutes = 0;
-  } else if (newStatus === 'boarding') {
-    const boardMs = (station.boardingDuration || 3) * 60 * 1000;
-    update.boardingStartTime = now;
-    update.boardingEndTime   = now + boardMs;
   } else if (newStatus === 'setup') {
-    const setupMs = (station.setupDuration || 7) * 60 * 1000;
-    update.setupStartTime = now;
-    update.setupEndTime   = now + setupMs;
+    // No countdown — the station sits here until someone starts the next one.
+    update.setupStartTime  = now;
+    update.setupEndTime    = 0;
+    update.sessionEndTime  = 0;
+    update.nextSessionTime = 0;
   } else if (newStatus === 'break') {
     update.breakStartTime = now;
     update.breakEndTime   = now + 30 * 60 * 1000;
@@ -151,6 +154,8 @@ async function transitionStation(stationId, newStatus, station, extraData = {}) 
     update.sessionStartTime = 0;
     update.sessionEndTime   = 0;
     update.nextSessionTime  = 0;
+    update.setupStartTime   = 0;
+    update.setupEndTime     = 0;
   }
 
   await stationRef(stationId).update(update);
@@ -195,12 +200,13 @@ async function copyToClipboard(text, successMsg = 'הועתק!') {
 
 // ── Auto-transition watcher ──
 // Call once per management page: startAutoTransitionWatcher(() => stations)
-// Checks every 4s; fires transitionStation when a timer expires.
+// The only automatic hop is running → setup when the activity timer runs out.
+// Setup has no timer: it waits for an instructor to start the next activity.
 // Firebase re-read before writing prevents double-writes if multiple tabs are open.
 const _autoWatchLocks = new Set();
 
 function startAutoTransitionWatcher(getStations) {
-  console.log('%c[AutoTransition] v20260824 — running→setup→boarding→running', 'color:#00e676;font-weight:700');
+  console.log('%c[AutoTransition] v20260824 — running→setup (setup waits for the instructor)', 'color:#00e676;font-weight:700');
   setInterval(async () => {
     const now  = Date.now();
     const stns = typeof getStations === 'function' ? getStations() : getStations;
@@ -210,9 +216,9 @@ function startAutoTransitionWatcher(getStations) {
       if (_autoWatchLocks.has(id)) continue;
 
       let next = null;
-      if      (s.status === 'running'  && s.sessionEndTime  > 0 && now >= s.sessionEndTime)  next = 'setup';
-      else if (s.status === 'setup'    && s.setupEndTime    > 0 && now >= s.setupEndTime)    next = 'boarding';
-      else if (s.status === 'boarding' && s.boardingEndTime > 0 && now >= s.boardingEndTime) next = 'running';
+      if      (s.status === 'running' && s.sessionEndTime > 0 && now >= s.sessionEndTime) next = 'setup';
+      // boarding was removed from the flow — sweep up anything left in it
+      else if (s.status === 'boarding') next = 'setup';
       if (!next) continue;
 
       _autoWatchLocks.add(id);
@@ -241,15 +247,11 @@ function defaultStation(id, name, order) {
     topicColor:          '#00e5ff',
     videoUrl:            '',
     activityDuration:    25,
-    setupDuration:       7,
-    boardingDuration:    3,
     autoTransitionDelay: 3,
     status:              'idle',
     sessionStartTime:    0,
     sessionEndTime:      0,
     nextSessionTime:     0,
-    boardingStartTime:   0,
-    boardingEndTime:     0,
     setupStartTime:      0,
     setupEndTime:        0,
     extensions:          0,
