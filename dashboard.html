@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824e">
+  <link rel="stylesheet" href="css/style.css?v=20260824f">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -435,7 +435,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824e"></script>
+<script src="js/utils.js?v=20260824f"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -525,7 +525,7 @@ function tickClock() {
   const hh = String(d.getHours()).padStart(2,'0');
   const mm = String(d.getMinutes()).padStart(2,'0');
   const ss = String(d.getSeconds()).padStart(2,'0');
-  document.getElementById('live-clock').textContent = `${hh}:${mm}:${ss}`;
+  setDigitText(document.getElementById('live-clock'), `${hh}:${mm}:${ss}`);
 }
 setInterval(tickClock, 1000); tickClock();
 

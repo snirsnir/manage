@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824e">
+  <link rel="stylesheet" href="css/style.css?v=20260824f">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -277,7 +277,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="tut-help-btn" onclick="openTutorial()" title="מדריך שימוש">?</button>
-      <div id="board-clock" class="board-clock">--:--:--</div>
+      <div id="board-clock" class="board-clock" data-seconds="1">--:--:--</div>
     </div>
   </div>
 
@@ -334,7 +334,10 @@
     <div class="tut-step hidden" id="tstep-1">
       <div class="tut-icon">📊</div>
       <div class="tut-title">מפת הפעילויות</div>
-      <div class="tut-text">כל שורה מייצגת מתחם. צבע המסגרת מציין מצב: <strong>ירוק = נכנסים</strong>, <strong>כחול = פעיל</strong>, <strong>כתום = הגדרה</strong>. הטיימר מציג כמה זמן נותר לסיום הסדנה הנוכחית.</div>
+      <div class="tut-text">כל שורה מייצגת מעבדה, וצבע המסגרת מראה מה קורה בה עכשיו:<br>
+        <strong style="color:var(--running)">ירוק</strong> — הפעילות מתקיימת כרגע. הטיימר מראה כמה זמן נותר לה.<br>
+        <strong style="color:var(--setup)">כתום</strong> — המעבדה מתארגנת לסבב הבא. תכף ייקראו לכם להיכנס.<br>
+        <strong style="color:var(--closed)">אדום</strong> — המעבדה אינה פעילה כרגע.</div>
     </div>
 
     <div class="tut-step hidden" id="tstep-2">
@@ -366,7 +369,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824e"></script>
+<script src="js/utils.js?v=20260824f"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -416,8 +419,7 @@ function applyDoneTopics() {
 
 // Clock
 setInterval(() => {
-  document.getElementById('board-clock').textContent =
-    new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setClockText(document.getElementById('board-clock'));
 }, 1000);
 
 // Offline

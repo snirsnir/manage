@@ -34,30 +34,47 @@ function formatTimer(totalSeconds) {
 // Orbitron ships no tabular figures and ignores font-variant-numeric, so its
 // digits have different advance widths and a ticking clock visibly shifts.
 // Render each glyph in its own fixed-width cell instead (see .td in style.css).
-function timerCells(totalSeconds) {
-  // dir="ltr" is essential: these pages are RTL, and without it the
-  // inline-block cells lay out right-to-left and 23:57 renders as 75:32.
+// Works for any short numeric string — MM:SS timers and HH:MM:SS wall clocks.
+// dir="ltr" is essential: these pages are RTL, and without it the inline-block
+// cells lay out right-to-left and 23:57 renders as 75:32.
+function digitCells(text) {
   return '<span class="tdw" dir="ltr">' +
-    Array.from(formatTimer(totalSeconds))
-      .map(c => `<i class="td${c === ':' ? ' td--sep' : ''}">${c}</i>`)
+    Array.from(String(text))
+      .map(c => `<i class="td${/[0-9]/.test(c) ? '' : ' td--sep'}">${c}</i>`)
       .join('') +
     '</span>';
 }
 
+function timerCells(totalSeconds) {
+  return digitCells(formatTimer(totalSeconds));
+}
+
 // In-place update: builds the cells once, then writes only the digits that
 // actually changed — one or two per second rather than a whole subtree.
-function setTimerText(el, totalSeconds) {
+function setDigitText(el, text) {
   if (!el) return;
-  const txt   = formatTimer(totalSeconds);
+  const txt   = String(text);
   const cells = el._tdCells;
   if (!cells || cells.length !== txt.length) {
-    el.innerHTML = timerCells(totalSeconds);
+    el.innerHTML = digitCells(txt);
     el._tdCells  = Array.from(el.getElementsByClassName('td'));
     return;
   }
   for (let i = 0; i < txt.length; i++) {
     if (cells[i].textContent !== txt[i]) cells[i].textContent = txt[i];
   }
+}
+
+function setTimerText(el, totalSeconds) {
+  setDigitText(el, formatTimer(totalSeconds));
+}
+
+// The wall clock in he-IL is plain HH:MM(:SS), so it can go straight through.
+function setClockText(el) {
+  if (!el) return;
+  setDigitText(el, new Date().toLocaleTimeString('he-IL', el.dataset.seconds === '1'
+    ? { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+    : { hour: '2-digit', minute: '2-digit' }));
 }
 
 // Format Unix timestamp → HH:MM
