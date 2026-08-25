@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825">
+  <link rel="stylesheet" href="css/style.css?v=20260825b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -35,7 +35,7 @@
     .board-clock  { font-family:var(--font-display); font-size:2.2rem; font-weight:700;
                     color:var(--cyan); text-shadow:0 0 14px rgba(240,180,41,.4); letter-spacing:3px;
                     font-variant-numeric: tabular-nums; direction: ltr;
-                    min-width: 9rem; text-align: center; }
+                    min-width: 6rem; text-align: center; }
 
     /* Divider */
     .board-divider {
@@ -122,7 +122,9 @@
                  white-space:nowrap; text-overflow:ellipsis; }
     .row-topic { font-size:1.15rem; font-weight:700;
                  white-space:nowrap; text-overflow:ellipsis; }
-    .row-time  { font-family:var(--font-display); font-size:1.45rem; font-weight:700; }
+    .row-time  { font-family:var(--font-display); font-size:1.45rem; font-weight:700;
+                 color:#fff; -webkit-text-stroke:.5px rgba(0,0,0,.6);
+                 text-shadow:0 1px 2px rgba(0,0,0,.4); }
     .row-next  { font-size:.92rem; color:var(--text-300); }
     .row-next strong { color:var(--text-100); }
 
@@ -310,7 +312,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="tut-help-btn" onclick="openTutorial()" title="מדריך שימוש">?</button>
-      <div id="board-clock" class="board-clock" data-seconds="1">--:--:--</div>
+      <div id="board-clock" class="board-clock">--:--</div>
     </div>
   </div>
 
@@ -402,7 +404,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825"></script>
+<script src="js/utils.js?v=20260825b"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -559,8 +561,7 @@ function buildRow(s) {
 
   if (st === 'running' && s.sessionEndTime) {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
-    const color = secs < 180 ? 'var(--closed)' : secs < 300 ? 'var(--setup)' : 'var(--running)';
-    timerHtml = `<span class="row-time" id="t-${s.id}" style="color:${color}">${timerCells(secs)}</span>`;
+    timerHtml = `<span class="row-time" id="t-${s.id}">${timerCells(secs)}</span>`;
   } else if (st === 'setup' || st === 'boarding') {
     timerHtml = `<span class="row-time" style="color:var(--setup);font-size:1.05rem">ממתין</span>`;
   } else if (st === 'break' && s.breakEndTime) {
@@ -663,7 +664,6 @@ function tickBoard() {
       if (st === 'running'  && s.sessionEndTime)  secs = Math.max(0, Math.round((s.sessionEndTime  - now)/1000));
       if (st === 'break'    && s.breakEndTime)     secs = Math.max(0, Math.round((s.breakEndTime    - now)/1000));
       setTimerText(tEl, secs);
-      if (st === 'running' && secs < 180) tEl.style.color = secs < 60 ? 'var(--closed)' : 'var(--setup)';
     }
 
     if (nEl && s.nextSessionTime) {
