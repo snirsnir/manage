@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825b">
+  <link rel="stylesheet" href="css/style.css?v=20260825c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -83,10 +83,9 @@
       background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.18);
       color: var(--text-300); font-size: .82rem; font-weight: 600;
       padding: 10px 18px; border-radius: 100px; cursor: pointer;
-      transition: background .2s, opacity .2s; opacity: .55;
       -webkit-tap-highlight-color: transparent;
     }
-    .disp-copy:hover { opacity: 1; background: rgba(0,0,0,.9); }
+    .disp-copy:hover { background: rgba(0,0,0,.9); }
 
     .picker-grid {
       display: grid;
@@ -194,6 +193,16 @@
     /* ════════════════════════════════
        STEP 3 — DISPLAY
     ════════════════════════════════ */
+    /* ── Guest-facing colour language ──
+       Same inversion as the guest board: red means "taken right now", green
+       means "about to open". Closed is a much darker red so a lab that is shut
+       for the day never reads as merely busy. */
+    :root {
+      --guest-busy: #f44336;
+      --guest-soon: #00e676;
+      --guest-shut: #6d1410;
+    }
+
     #display {
       width: 100vw; height: 100dvh;
       display: grid; position: relative;
@@ -205,6 +214,17 @@
     #display[data-count="3"] { grid-template-columns: 1fr 1fr 1fr; }
     #display[data-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
+    /* Controls stay out of the way until a mouse appears. A TV never hovers,
+       so the display stays clean; a laptop reveals them on demand. */
+    .disp-back, .disp-copy {
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s, background .2s;
+    }
+    #display:hover .disp-back,
+    #display:hover .disp-copy { opacity: .8; pointer-events: auto; }
+    #display .disp-back:hover,
+    #display .disp-copy:hover { opacity: 1; }
+
     /* Back button */
     .disp-back {
       position: fixed; bottom: 16px; right: 16px; z-index: 100;
@@ -212,10 +232,9 @@
       background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.18);
       color: var(--text-300); font-size: .82rem; font-weight: 600;
       padding: 10px 18px; border-radius: 100px; cursor: pointer;
-      transition: background .2s, opacity .2s; opacity: .55;
       -webkit-tap-highlight-color: transparent;
     }
-    .disp-back:hover { opacity: 1; background: rgba(0,0,0,.9); }
+    .disp-back:hover { background: rgba(0,0,0,.9); }
 
     /* Station cell */
     .disp-cell {
@@ -235,17 +254,17 @@
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2;
     }
     .disp-cell.status-idle::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(84,110,122,.22) 0%, transparent 68%); }
-    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,193,7,.18) 0%, transparent 68%); }   /* legacy */
-    .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(33,150,243,.2) 0%, transparent 68%); }
-    .disp-cell.status-setup::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,193,7,.17) 0%, transparent 68%); }
-    .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.2) 0%, transparent 68%); }
+    .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.20) 0%, transparent 68%); }
+    .disp-cell.status-setup::before,
+    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.17) 0%, transparent 68%); }
+    .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(109,20,16,.42) 0%, transparent 68%); }
     .disp-cell.status-break::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,152,0,.2) 0%, transparent 68%); }
 
     .disp-cell.status-idle::after     { background: var(--idle);    }
-    .disp-cell.status-boarding::after { background: var(--setup); box-shadow: 0 0 12px var(--setup); }   /* legacy */
-    .disp-cell.status-running::after  { background: var(--running); }
-    .disp-cell.status-setup::after    { background: var(--setup);   }
-    .disp-cell.status-closed::after   { background: var(--closed);  }
+    .disp-cell.status-running::after  { background: var(--guest-busy); box-shadow: 0 0 12px var(--guest-busy); }
+    .disp-cell.status-setup::after,
+    .disp-cell.status-boarding::after { background: var(--guest-soon); box-shadow: 0 0 12px var(--guest-soon); }
+    .disp-cell.status-closed::after   { background: var(--guest-shut); }
     .disp-cell.status-break::after    { background: var(--break);   }
 
     .disp-cell > * { position: relative; z-index: 1; }
@@ -273,10 +292,10 @@
       box-shadow: 0 0 18px currentColor;
     }
     .disp-label.status-idle     { color: var(--idle);    }
-    .disp-label.status-boarding { color: var(--setup); }   /* legacy */
-    .disp-label.status-running  { color: var(--running); }
-    .disp-label.status-setup    { color: var(--setup);   }
-    .disp-label.status-closed   { color: var(--closed);  }
+    .disp-label.status-running  { color: var(--guest-busy); }
+    .disp-label.status-setup,
+    .disp-label.status-boarding { color: var(--guest-soon); }
+    .disp-label.status-closed   { color: #ff8a80; background: rgba(109,20,16,.45); box-shadow: none; }
     .disp-label.status-break    { color: var(--break);   }
     /* was pulsing box-shadow to a 68px blur on every boarding cell at once */
     @keyframes pulse-disp {
@@ -293,13 +312,35 @@
       padding: clamp(8px,1.5vw,24px) clamp(14px,2.5vw,48px);
       display: flex; flex-direction: column; align-items: center; gap: 3px;
     }
-    .disp-next-lbl  { font-size: clamp(.55rem,1.1vw,1rem); color: var(--text-300); font-weight: 600; }
-    .disp-next-time {
-      font-family: var(--font-display); font-size: clamp(1.2rem,3.5vw,4rem);
-      font-weight: 900; letter-spacing: 4px; color: var(--text-100);
-      text-shadow: 0 0 22px rgba(240,180,41,.5); font-variant-numeric: tabular-nums;
+    .disp-next-msg  {
+      font-size: clamp(.75rem,1.9vw,1.9rem); font-weight: 800; line-height: 1.25;
+      color: var(--text-100); text-align: center;
     }
-    .disp-next-rel { font-size: clamp(.55rem,1.1vw,1.1rem); color: var(--text-300); }
+
+    /* ── Setup meter ──
+       Fills on time elapsed since setup began and stops at 90% on purpose.
+       See setupProgress() in utils.js. */
+    .disp-meter {
+      width: clamp(160px,22vw,460px); height: clamp(9px,1.1vw,20px);
+      background: rgba(255,255,255,.12); border-radius: 100px;
+      overflow: hidden; margin-top: clamp(6px,1vh,14px);
+    }
+    .disp-meter-fill {
+      height: 100%; width: 0%; border-radius: 100px;
+      background: var(--guest-soon);
+      transition: width 1s linear, background-color 1s linear;
+    }
+
+    /* ── Running countdown ──
+       Neutral on purpose: the cell colour already says the lab is taken, so a
+       second colour signal here would only compete with it. */
+    .disp-timer-lbl { font-size: clamp(.55rem,1.2vw,1.2rem); color: var(--text-300); font-weight: 600; }
+    .disp-timer {
+      font-family: var(--font-display); font-size: clamp(2rem,6vw,6.5rem);
+      font-weight: 900; letter-spacing: 4px; line-height: 1;
+      color: #fff; -webkit-text-stroke: 1px rgba(0,0,0,.55);
+      text-shadow: 0 2px 6px rgba(0,0,0,.5);
+    }
 
     .disp-break {
       background: rgba(255,152,0,.1); border: 2px solid rgba(255,152,0,.4);
@@ -314,18 +355,27 @@
     }
 
     /* Direction arrow at bottom */
+    /* The direction arrow is the one thing a visitor reads from down the
+       corridor, so it sits centred and on its own. */
     .disp-cell-bottom {
-      width: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
-    }
-    .disp-clock {
-      font-family: var(--font-display); font-size: clamp(.9rem,2.2vw,2.4rem);
-      font-weight: 700; color: var(--text-300); letter-spacing: 3px;
-      font-variant-numeric: tabular-nums;
+      width: 100%; display: flex; flex-direction: column;
+      align-items: center; gap: clamp(6px,1vh,14px);
     }
     .disp-arrow {
-      font-size: clamp(2.8rem,7vw,7rem); line-height: 1;
-      color: var(--text-100); filter: drop-shadow(0 0 10px var(--text-400));
+      font-size: clamp(3.6rem,9.5vw,10rem); line-height: 1;
+      color: #fff; filter: drop-shadow(0 3px 10px rgba(0,0,0,.6));
       display: inline-block; transition: transform .3s;
+    }
+
+    /* One clock for the whole screen — it was repeated in every cell. Corner
+       placement keeps it clear of the logo each cell centres at its top. */
+    .disp-topclock {
+      position: fixed; top: clamp(10px,1.6vh,24px); left: clamp(14px,2vw,34px);
+      z-index: 90;
+      font-family: var(--font-display); font-size: clamp(1rem,2.2vw,2.4rem);
+      font-weight: 700; color: var(--text-200); letter-spacing: 3px;
+      background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 100px; padding: clamp(3px,.5vh,8px) clamp(10px,1.4vw,22px);
     }
 
     /* Same-topic center notification */
@@ -429,6 +479,7 @@
 
 <!-- ════ STEP 3: DISPLAY ════ -->
 <div id="display" class="hidden" data-count="1">
+  <div class="disp-topclock" id="disp-topclock">--:--</div>
   <button class="disp-back" onclick="goToStep1()">← חזרה לבחירה</button>
   <button class="disp-copy" id="disp-copy" onclick="copyCurrentLink()">🔗 העתק קישור לטלוויזיה</button>
 </div>
@@ -437,7 +488,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825b"></script>
+<script src="js/utils.js?v=20260825c"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -797,19 +848,22 @@ function buildCell(s, id) {
   if (st === 'idle') {
     mid = `${header}<div class="disp-icon">⬜</div>${label}`;
   } else if (st === 'running') {
-    const nxt = s.nextSessionTime ? `
-      <div class="disp-next">
-        <div class="disp-next-lbl">הסבב הבא ב-</div>
-        <div class="disp-next-time" id="next-${id}">${formatTime(s.nextSessionTime)}</div>
-        <div class="disp-next-rel"  id="rel-${id}">${formatTimeUntil(s.nextSessionTime)}</div>
-      </div>` : '';
-    mid = `${header}<div class="disp-icon">🔵</div>${label}${nxt}`;
+    // sessionEndTime is exact, and a visitor deciding whether to wait needs it.
+    const secs = s.sessionEndTime ? Math.max(0, Math.round((s.sessionEndTime - now)/1000)) : 0;
+    mid = `${header}<div class="disp-icon">🔴</div>${label}
+      <div class="disp-timer-lbl">נותר לפעילות</div>
+      <div class="disp-timer" id="tmr-${id}">${timerCells(secs)}</div>`;
   } else if (st === 'setup' || st === 'boarding') {
-    // Setup waits for the instructor, so no clock time can be promised here.
-    mid = `${header}<div class="disp-icon">🟡</div>${label}
+    // Setup waits for the instructor, so no clock time can be promised here —
+    // the meter shows how far along the changeover is instead.
+    const p = setupProgress(s);
+    mid = `${header}<div class="disp-icon">🟢</div>${label}
       <div class="disp-next">
-        <div class="disp-next-lbl">הפעילות הבאה</div>
-        <div class="disp-next-time">תתחיל בקרוב</div>
+        <div class="disp-next-msg" id="msg-${id}">${p.text}</div>
+        <div class="disp-meter">
+          <div class="disp-meter-fill" id="mtr-${id}"
+               style="width:${p.fill}%;background:${p.color}"></div>
+        </div>
       </div>`;
   } else if (st === 'break') {
     const secs = s.breakEndTime ? Math.max(0,Math.round((s.breakEndTime-now)/1000)) : 1800;
@@ -819,7 +873,8 @@ function buildCell(s, id) {
         <div class="disp-break-timer" id="brk-${id}">${timerCells(secs)}</div>
       </div>`;
   } else {
-    mid = `${header}<div class="disp-icon">🔴</div>${label}`;
+    // 🚫, not 🔴 — running owns the red circle now
+    mid = `${header}<div class="disp-icon">🚫</div>${label}`;
   }
 
   const arrowHtml = dir
@@ -836,7 +891,6 @@ function buildCell(s, id) {
     </div>
     <div class="disp-cell-main">${mid}</div>
     <div class="disp-cell-bottom">
-      <div class="disp-clock" id="clk-${id}">${digitCells(new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}))}</div>
       ${msgHtml}
       ${arrowHtml}
     </div>`;
@@ -895,21 +949,27 @@ function checkSameTopicNotifs() {
 
 function tickDisplay() {
   const now = Date.now();
+  setClockText(document.getElementById('disp-topclock'));
+
   selectedIds.forEach(id => {
     const s = stations[id];
     if (!s) return;
     const st = s.status || 'idle';
-    const clkEl = document.getElementById(`clk-${id}`);
-    setClockText(clkEl);
-    if (st === 'break' && s.breakEndTime) {
-      const el = document.getElementById(`brk-${id}`);
-      setTimerText(el, Math.max(0,Math.round((s.breakEndTime-now)/1000)));
-    }
-    if (s.nextSessionTime) {
-      const nEl = document.getElementById(`next-${id}`);
-      const rEl = document.getElementById(`rel-${id}`);
-      if (nEl) nEl.textContent = formatTime(s.nextSessionTime);
-      if (rEl) rEl.textContent = formatTimeUntil(s.nextSessionTime);
+
+    if (st === 'running' && s.sessionEndTime) {
+      setTimerText(document.getElementById(`tmr-${id}`),
+                   Math.max(0, Math.round((s.sessionEndTime - now)/1000)));
+
+    } else if (st === 'setup' || st === 'boarding') {
+      const p    = setupProgress(s);
+      const fill = document.getElementById(`mtr-${id}`);
+      const msg  = document.getElementById(`msg-${id}`);
+      if (fill) { fill.style.width = p.fill + '%'; fill.style.background = p.color; }
+      if (msg && msg.textContent !== p.text) msg.textContent = p.text;
+
+    } else if (st === 'break' && s.breakEndTime) {
+      setTimerText(document.getElementById(`brk-${id}`),
+                   Math.max(0, Math.round((s.breakEndTime - now)/1000)));
     }
   });
   checkSameTopicNotifs();

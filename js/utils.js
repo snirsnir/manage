@@ -235,6 +235,33 @@ async function extendSession(stationId, station, extraMinutes) {
   });
 }
 
+// ── Setup progress meter ──
+// Shared by the guest board and the entrance displays. Setup deliberately has
+// no deadline: it ends when an instructor decides the next activity starts. So
+// this measures time ELAPSED since setup began, and stops short of full —
+// filling it completely would promise a finish nothing guarantees, and an
+// instructor who runs long would leave a full bar sitting there.
+const SETUP_METER_MS  = 7 * 60 * 1000;
+const SETUP_METER_CAP = 90;          // percent — never reads as "done"
+const SETUP_METER_FROM = [255, 152, 0];   // orange
+const SETUP_METER_TO   = [0, 230, 118];   // green
+
+function lerpRgb(a, b, t) {
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function setupProgress(s) {
+  const started = (s && s.setupStartTime) || 0;
+  const t = started ? Math.min(1, (Date.now() - started) / SETUP_METER_MS) : 0;
+  return {
+    t,
+    fill:  Math.round(t * SETUP_METER_CAP),
+    color: lerpRgb(SETUP_METER_FROM, SETUP_METER_TO, t),
+    text:  t >= .8 ? 'כבר ייקראו לכם להיכנס' : 'בקרוב תתחיל פעילות חדשה'
+  };
+}
+
 // Copy text to clipboard
 async function copyToClipboard(text, successMsg = 'הועתק!') {
   try {

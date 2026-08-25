@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825b">
+  <link rel="stylesheet" href="css/style.css?v=20260825c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -404,7 +404,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825b"></script>
+<script src="js/utils.js?v=20260825c"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -603,29 +603,8 @@ function buildRow(s) {
   </div>`;
 }
 
-// ── Setup progress meter ──
-// Setup deliberately has no deadline: it ends when an instructor decides the
-// next activity starts. So this measures time elapsed since setup began, and
-// stops at 90% — filling it completely would promise a finish we don't control,
-// and an instructor who runs long would leave a full bar sitting there.
-const SETUP_METER_MS  = 7 * 60 * 1000;
-const SETUP_METER_CAP = 90;
-
-function lerpRgb(a, b, t) {
-  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
-
-function setupProgress(s) {
-  const started = s.setupStartTime || 0;
-  const t = started ? Math.min(1, (Date.now() - started) / SETUP_METER_MS) : 0;
-  return {
-    fill:  Math.round(t * SETUP_METER_CAP),
-    color: lerpRgb([255, 152, 0], [0, 230, 118], t),   // orange → green
-    text:  t >= .8 ? 'כבר ייקראו לכם להיכנס' : 'בקרוב תתחיל פעילות חדשה'
-  };
-}
-
+// setupProgress() and its constants live in utils.js — the entrance displays
+// render the same meter and the wording must not drift between them.
 function applySetupMeter(el, s) {
   if (!el) return;
   const p = setupProgress(s);
