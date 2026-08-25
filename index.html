@@ -4,11 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260824f">
+  <link rel="stylesheet" href="css/style.css?v=20260825">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
     html, body { min-height: 100dvh; }
+
+    :root {
+      --guest-busy: #f44336;   /* an activity is running — the lab is taken */
+      --guest-soon: #00e676;   /* getting ready — a new activity is imminent */
+      --guest-shut: #6d1410;   /* closed for the day, must not read as "busy" */
+    }
 
     /* ── Full-screen flex layout ── */
     .board-layout {
@@ -75,15 +81,42 @@
       content:''; position:absolute; top:0; right:0; bottom:0; width:4px;
       border-radius:0 var(--r-md) var(--r-md) 0; transition:background .4s;
     }
+    /* ── Guest-facing colour language ──
+       Deliberately the opposite of the staff screens. A visitor reads the board
+       to find somewhere to go, so red means "taken right now" and green means
+       "about to open". A lab that is shut for the day must not read as merely
+       busy, so it gets a much darker red than the in-progress one. */
     .board-row.status-idle::before     { background:var(--idle); }
-    .board-row.status-boarding::before { background:var(--setup); box-shadow:0 0 8px var(--setup); }   /* legacy */
-    .board-row.status-running::before  { background:var(--running);  box-shadow:0 0 8px var(--running);  }
-    .board-row.status-setup::before    { background:var(--setup);    box-shadow:0 0 8px var(--setup);    }
-    .board-row.status-closed::before   { background:var(--closed);   }
+    .board-row.status-running::before  { background:var(--guest-busy); box-shadow:0 0 8px var(--guest-busy); }
+    .board-row.status-setup::before,
+    .board-row.status-boarding::before { background:var(--guest-soon); box-shadow:0 0 8px var(--guest-soon); }
+    .board-row.status-closed::before   { background:var(--guest-shut); }
     .board-row.status-break::before    { background:var(--break);    }
 
-    .board-row.status-boarding { border-color:rgba(255,193,7,.3); background:rgba(255,193,7,.05); }   /* legacy */
-    .board-row.status-running  { border-color:rgba(33,150,243,.3); }
+    .board-row.status-running  { border-color:rgba(244,67,54,.32); background:rgba(244,67,54,.05); }
+    .board-row.status-setup,
+    .board-row.status-boarding { border-color:rgba(0,230,118,.32); background:rgba(0,230,118,.05); }
+    .board-row.status-closed   { border-color:rgba(109,20,16,.55); background:rgba(109,20,16,.14); }
+
+    /* Badges follow the same inversion, scoped to the board so the staff
+       screens keep reading green-for-running from style.css. */
+    .board-row .badge--running { color:var(--guest-busy); background:rgba(244,67,54,.12); }
+    .board-row .badge--setup   { color:var(--guest-soon); background:rgba(0,230,118,.10); }
+    .board-row .badge--closed  { color:#ff8a80; background:rgba(109,20,16,.5); border-color:var(--guest-shut); }
+    .board-row .badge--running .badge-dot { animation:none; }
+
+    /* ── The setup badge doubles as a progress meter ──
+       Setup has no timer — it ends when an instructor starts the next
+       activity — so this fills on time ELAPSED, not a countdown, and stops
+       short of full on purpose. See setupProgress() below. */
+    .badge--meter { position:relative; overflow:hidden; }
+    .badge--meter .meter-fill {
+      position:absolute; top:0; bottom:0; right:0;   /* RTL: grows from the right */
+      width:var(--meter-fill,0%);
+      background:var(--meter-color,var(--setup)); opacity:.28;
+      transition:width 1s linear, background-color 1s linear;
+    }
+    .badge--meter .meter-txt { position:relative; z-index:1; }
 
     .row-name  { font-size:1.25rem; font-weight:800; color:var(--text-100);
                  white-space:nowrap; text-overflow:ellipsis; }
@@ -334,10 +367,10 @@
     <div class="tut-step hidden" id="tstep-1">
       <div class="tut-icon">📊</div>
       <div class="tut-title">מפת הפעילויות</div>
-      <div class="tut-text">כל שורה מייצגת מעבדה, וצבע המסגרת מראה מה קורה בה עכשיו:<br>
-        <strong style="color:var(--running)">ירוק</strong> — הפעילות מתקיימת כרגע. הטיימר מראה כמה זמן נותר לה.<br>
-        <strong style="color:var(--setup)">כתום</strong> — המעבדה מתארגנת לסבב הבא. תכף ייקראו לכם להיכנס.<br>
-        <strong style="color:var(--closed)">אדום</strong> — המעבדה אינה פעילה כרגע.</div>
+      <div class="tut-text">כל שורה מייצגת מעבדה, והצבע מראה אם כדאי לכם ללכת לשם עכשיו:<br>
+        <strong style="color:var(--guest-busy)">אדום</strong> — פעילות מתקיימת כרגע, המעבדה תפוסה. הטיימר מראה כמה זמן נותר לה.<br>
+        <strong style="color:var(--guest-soon)">ירוק</strong> — בקרוב תתחיל פעילות חדשה. הפס שמתמלא מראה כמה התקדמו בהכנות.<br>
+        <strong style="color:#ff8a80">אדום כהה</strong> — המעבדה אינה פעילה היום.</div>
     </div>
 
     <div class="tut-step hidden" id="tstep-2">
@@ -369,7 +402,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260824f"></script>
+<script src="js/utils.js?v=20260825"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -535,9 +568,10 @@ function buildRow(s) {
     timerHtml = `<span class="row-time" id="t-${s.id}" style="color:var(--break)">${timerCells(secs)}</span>`;
   }
 
-  // Setup waits for the instructor, so there is no clock time to promise.
+  // The meter badge already says the next activity is coming, so this column
+  // would only repeat it.
   if (st === 'setup' || st === 'boarding') {
-    nextHtml = `<span class="row-next" style="color:var(--setup);font-weight:700">הסבב הבא יתחיל בקרוב</span>`;
+    nextHtml = `<span class="row-next" style="color:var(--text-400)">—</span>`;
   } else if (s.nextSessionTime) {
     const minsUntil = Math.round((s.nextSessionTime - now)/60000);
     const isSoon    = minsUntil <= 5 && minsUntil >= 0;
@@ -556,7 +590,7 @@ function buildRow(s) {
     style="grid-template-columns:54px 2fr 3fr 1.2fr 1.5fr 2fr;">
     <div class="row-name">${s.name}</div>
     <div class="row-topic" style="color:${color}">${s.topic||'—'}</div>
-    <div>${statusBadge(st)}</div>
+    <div>${statusBadge(st, s)}</div>
     <div>${timerHtml}</div>
     <div>${nextHtml}</div>
     <div style="display:flex;align-items:center;justify-content:center;">
@@ -568,7 +602,46 @@ function buildRow(s) {
   </div>`;
 }
 
-function statusBadge(st) {
+// ── Setup progress meter ──
+// Setup deliberately has no deadline: it ends when an instructor decides the
+// next activity starts. So this measures time elapsed since setup began, and
+// stops at 90% — filling it completely would promise a finish we don't control,
+// and an instructor who runs long would leave a full bar sitting there.
+const SETUP_METER_MS  = 7 * 60 * 1000;
+const SETUP_METER_CAP = 90;
+
+function lerpRgb(a, b, t) {
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function setupProgress(s) {
+  const started = s.setupStartTime || 0;
+  const t = started ? Math.min(1, (Date.now() - started) / SETUP_METER_MS) : 0;
+  return {
+    fill:  Math.round(t * SETUP_METER_CAP),
+    color: lerpRgb([255, 152, 0], [0, 230, 118], t),   // orange → green
+    text:  t >= .8 ? 'כבר ייקראו לכם להיכנס' : 'בקרוב תתחיל פעילות חדשה'
+  };
+}
+
+function applySetupMeter(el, s) {
+  if (!el) return;
+  const p = setupProgress(s);
+  el.style.setProperty('--meter-fill', p.fill + '%');
+  el.style.setProperty('--meter-color', p.color);
+  el.style.color = p.color;
+  const txt = el.getElementsByClassName('meter-txt')[0];
+  if (txt && txt.textContent !== p.text) txt.textContent = p.text;
+}
+
+function statusBadge(st, s) {
+  if (st === 'setup' || st === 'boarding') {
+    const p = setupProgress(s);
+    return `<span class="badge badge--setup badge--meter" id="badge-${s.id}"
+      style="--meter-fill:${p.fill}%;--meter-color:${p.color};color:${p.color}"
+      ><span class="meter-fill"></span><span class="meter-txt">${p.text}</span></span>`;
+  }
   return `<span class="badge badge--${st}"><span class="badge-dot"></span><span class="badge-label">${STATUS[st].label}</span></span>`;
 }
 
@@ -580,6 +653,10 @@ function tickBoard() {
     const st  = s.status || 'idle';
     const tEl = document.getElementById(`t-${s.id}`);
     const nEl = document.getElementById(`n-${s.id}`);
+
+    if (st === 'setup' || st === 'boarding') {
+      applySetupMeter(document.getElementById(`badge-${s.id}`), s);
+    }
 
     if (tEl) {
       let secs = 0;
