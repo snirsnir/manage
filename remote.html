@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>מדריך | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827">
+  <link rel="stylesheet" href="css/style.css?v=20260827b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -241,7 +241,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827"></script>
+<script src="js/utils.js?v=20260827b"></script>
 <script>
 const stationId = getParam('station');
 if (!stationId) {
@@ -425,7 +425,7 @@ function tickTimer() {
     // None of these count down — they wait for a person.
     const view = {
       open:    ['פתוח לכניסת קהל',    'var(--running)', 'לחץ "התחל פעילות חדשה" כשכולם בפנים'],
-      opening: ['ייפתח בקרוב',        '#ff9e66',        'מוצג לקהל: מומלץ לגשת למעבדות מקבילות']
+      opening: ['נסו מעבדה מקבילה',  '#ff9e66',        'מוצג לקהל: נסו מעבדה מקבילה']
     }[st] || ['הכנה לפעילות חדשה', 'var(--setup)', 'לחץ "פתח לכניסת קהל" כשאתם מוכנים'];
     timerEl.textContent = '—';
     timerEl.className   = 'timer-display';

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך מעבדה | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827">
+  <link rel="stylesheet" href="css/style.css?v=20260827b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     * { cursor: none; }
@@ -128,7 +128,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827"></script>
+<script src="js/utils.js?v=20260827b"></script>
 
 <!-- YouTube IFrame API -->
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -299,7 +299,8 @@ function renderScreenUI(st) {
     mid.innerHTML = `
       ${header}
       <div class="screen-status-icon">🟠</div>
-      <div class="screen-status-pill" style="color:#ff9e66;border-color:rgba(230,81,0,.6);">ייפתח בקרוב — מומלץ לגשת למעבדות מקבילות</div>`;
+      <div class="screen-status-pill" style="color:#ff9e66;border-color:rgba(230,81,0,.6);">נסו מעבדה מקבילה</div>
+      <div style="color:var(--text-300);font-size:1.1rem;margin-top:10px;">המעבדה הזו תיפתח בקרוב</div>`;
 
   } else if (st === 'setup' || st === 'boarding') {
     // No countdown — the next activity starts when the instructor is ready.

@@ -11,7 +11,7 @@ const STATUS = {
   boarding: { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
   // Both set by hand — neither has a timer, so a station sits in them until
   // an instructor or the shift manager moves it on.
-  opening:  { label: 'ייפתח בקרוב - מומלץ לגשת למעבדות מקבילות', css: 'opening', icon: '🟠' },
+  opening:  { label: 'נסו מעבדה מקבילה', css: 'opening', icon: '🟠' },
   open:     { label: 'פתוח לכניסת קהל',    css: 'open',     icon: '🟢' },
   closed:   { label: 'סגור',               css: 'closed',   icon: '🚫' },
   break:    { label: 'הפסקה',              css: 'break',    icon: '☕' }

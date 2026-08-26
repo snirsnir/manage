@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827">
+  <link rel="stylesheet" href="css/style.css?v=20260827b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -441,7 +441,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827"></script>
+<script src="js/utils.js?v=20260827b"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -685,7 +685,7 @@ function buildCardHTML(s, gridStyle = '') {
         <button class="btn btn--success" onclick="managerTransition('${s.id}','running')" title="בפעילות">🟢 פעילות</button>
         <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"   title="הכנה לפעילות חדשה">🟡 הכנה</button>
         <button class="btn btn--ghost"   style="color:#ff9e66;border-color:rgba(230,81,0,.45);"
-          onclick="managerTransition('${s.id}','opening')" title="ייפתח בקרוב — מומלץ לגשת למעבדות מקבילות">🟠 ייפתח</button>
+          onclick="managerTransition('${s.id}','opening')" title="מוצג לקהל: נסו מעבדה מקבילה">🟠 הפנה</button>
         <button class="btn btn--ghost"   style="color:var(--running);border-color:rgba(0,230,118,.45);"
           onclick="managerTransition('${s.id}','open')"    title="פתוח לכניסת קהל">🚪 פתוח לקהל</button>
       </div>
@@ -723,7 +723,7 @@ function buildTableRowHTML(s) {
       <div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
         <button class="btn btn--success" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🟢 פעילות</button>
         <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 הכנה</button>
-        <button class="btn btn--ghost" style="${btnSm};color:#ff9e66;border-color:rgba(230,81,0,.45);" onclick="managerTransition('${s.id}','opening')">🟠 ייפתח</button>
+        <button class="btn btn--ghost" style="${btnSm};color:#ff9e66;border-color:rgba(230,81,0,.45);" onclick="managerTransition('${s.id}','opening')">🟠 הפנה</button>
         <button class="btn btn--ghost" style="${btnSm};color:var(--running);border-color:rgba(0,230,118,.45);" onclick="managerTransition('${s.id}','open')">🚪 פתוח</button>
       </div>
       <div style="display:flex;gap:4px;align-items:center;">
@@ -818,7 +818,7 @@ function tickCard(id) {
   } else if (st === 'setup' || st === 'boarding' || st === 'opening' || st === 'open') {
     // No countdown — all of these wait for a person
     const lbl = { open:    ['ממתין לקהל', 'color-open',    'פתוח לכניסת קהל'],
-                  opening: ['להתחלה',     'color-opening', 'ייפתח בקרוב'] }[st]
+                  opening: ['להתחלה',     'color-opening', 'מוצג לקהל: נסו מעבדה מקבילה'] }[st]
               || ['להתחלה', 'color-setup', 'הפעילות הבאה תתחיל בקרוב'];
     timerEl.textContent = 'ממתין';
     timerEl.className   = 'dash-card__timer ' + lbl[1];

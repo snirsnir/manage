@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827">
+  <link rel="stylesheet" href="css/style.css?v=20260827b">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -580,7 +580,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827"></script>
+<script src="js/utils.js?v=20260827b"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -715,7 +715,8 @@ function buildDetailView() {
   // Temporary close is available from every state and is reversible from the
   // state it puts the station into.
   const CLOSE_BTN  = `<button class="detail-sec-btn detail-sec-btn--closed" onclick="goClosed()">🚫 סגור זמנית</button>`;
-  const SOON_BTN   = `<button class="detail-sec-btn detail-sec-btn--soon"   onclick="markOpeningSoon()">🟠 ייפתח בקרוב</button>`;
+  const SOON_BTN   = `<button class="detail-sec-btn detail-sec-btn--soon"   onclick="markOpeningSoon()">🟠 הפנה למעבדה מקבילה</button>`;
+  const OPEN_BTN   = `<button class="btn btn--success detail-start-btn" onclick="openForEntry()">🚪 פתח לכניסת קהל</button>`;
   const REOPEN_BTN = `<button class="detail-sec-btn detail-sec-btn--back"   onclick="reopenStation()">▶ חזור לפעילות רגילה</button>`;
 
   if (st === 'running' && s.sessionEndTime) {
@@ -734,12 +735,12 @@ function buildDetailView() {
     // The doors have to be opened before an activity can start — there is no
     // path straight from setup to running. ('boarding' is legacy.)
     infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);font-size:1rem;">⏳ מתארגנים לפעילות הבאה</div>`;
-    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openForEntry()">🚪 פתח לכניסת קהל</button>`;
+    actionHtml    = OPEN_BTN;
     secondaryHtml = `<div class="detail-actions-row">${SOON_BTN}${CLOSE_BTN}</div>`;
 
   } else if (st === 'opening') {
-    infoHtml      = `<div class="detail-info-box" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);color:#ffb787;font-size:1rem;">🟠 מוצג לקהל: ייפתח בקרוב — מומלץ לגשת למעבדות מקבילות</div>`;
-    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openForEntry()">🚪 פתח לכניסת קהל</button>`;
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);color:#ffb787;font-size:1rem;">🟠 מוצג לקהל: נסו מעבדה מקבילה</div>`;
+    actionHtml    = OPEN_BTN;
     secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
 
   } else if (st === 'open') {
@@ -755,9 +756,11 @@ function buildDetailView() {
     timerHtml  = `
       <div class="detail-timer-label" style="color:var(--break)">הפסקה — נחזור בעוד</div>
       <div class="detail-timer" style="color:var(--break);text-shadow:0 0 40px rgba(255,152,0,.35);" id="detail-timer">${timerCells(secs)}</div>`;
+    actionHtml    = OPEN_BTN;
     secondaryHtml = `<div class="detail-actions-row">${REOPEN_BTN}</div>`;
   } else if (st === 'closed') {
-    infoHtml      = `<div class="detail-info-box" style="background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);color:var(--closed);">🔴 המתחם סגור</div>`;
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);color:var(--closed);">🚫 המתחם סגור</div>`;
+    actionHtml    = OPEN_BTN;
     secondaryHtml = `<div class="detail-actions-row">${REOPEN_BTN}</div>`;
   }
 
@@ -850,7 +853,7 @@ async function markOpeningSoon() {
   try {
     await transitionStation(selectedId, 'opening', s, { manual: true });
     buildDetailView();
-    showToast('🟠 מוצג לקהל: ייפתח בקרוב', 'warning');
+    showToast('🟠 מוצג לקהל: נסו מעבדה מקבילה', 'warning');
   } catch(e) {
     showToast('שגיאה: ' + e.message, 'error');
   }
