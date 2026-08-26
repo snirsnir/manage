@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827c">
+  <link rel="stylesheet" href="css/style.css?v=20260827d">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -83,7 +83,7 @@
     }
     .tbl-row.status-idle::before     { background: var(--idle); }
     .tbl-row.status-boarding::before { background: var(--setup); box-shadow: 0 0 8px var(--setup); }   /* legacy */
-    .tbl-row.status-running::before  { background: var(--running);  box-shadow: 0 0 8px var(--running); }
+    .tbl-row.status-running::before  { background: var(--closed); box-shadow: 0 0 8px var(--closed); }
     .tbl-row.status-setup::before    { background: var(--setup);    box-shadow: 0 0 8px var(--setup); }
     .tbl-row.status-closed::before   { background: var(--closed); }
     .tbl-row.status-break::before    { background: var(--break); }
@@ -159,18 +159,24 @@
     .color-boarding { color: var(--setup); }   /* legacy */
     .color-opening  { color: #ff9e66; }
     .color-open     { color: var(--running); }
+
+    /* The "מצב" column reads the same as the visitor screens: a running lab is
+       taken, so it is red. Scoped to this page so style.css can keep its own
+       language for the instructor screens. */
+    .badge--running { color: var(--closed); background: rgba(244,67,54,.12); }
+    .badge--running .badge-dot { animation: none; }
     .tbl-row.status-opening::before   { background:#e65100; box-shadow:0 0 8px #e65100; }
     .tbl-row.status-open::before      { background:var(--running); box-shadow:0 0 8px var(--running); }
     .dash-card.status-opening::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:#e65100;box-shadow:0 0 10px #e65100; }
     .dash-card.status-open::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--running);box-shadow:0 0 10px var(--running); }
-    .color-running  { color: var(--running);  }
+    .color-running  { color: var(--closed);   }
     .color-setup    { color: var(--setup);    }
     .color-closed   { color: var(--closed);   }
 
     /* Top highlight bar per status */
     .dash-card.status-idle::before     { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--idle); }
     .dash-card.status-boarding::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--setup);box-shadow:0 0 10px var(--setup); }   /* legacy */
-    .dash-card.status-running::before  { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--running); box-shadow:0 0 10px var(--running);  }
+    .dash-card.status-running::before  { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--closed); box-shadow:0 0 10px var(--closed);  }
     .dash-card.status-setup::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--setup);   box-shadow:0 0 10px var(--setup);    }
     .dash-card.status-closed::before   { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--closed);  box-shadow:0 0 10px var(--closed);   }
     .dash-card.status-break::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--break);   box-shadow:0 0 10px var(--break);    }
@@ -447,7 +453,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827c"></script>
+<script src="js/utils.js?v=20260827d"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -765,7 +771,9 @@ function tickTableRow(id) {
 
   if (secs) {
     setTimerText(timerEl, secs);
-    if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--closed)' : 'var(--running)';
+    // The row already reads red for running, so the timer stays neutral and
+    // only calls out the last three minutes.
+    if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--setup)' : '';
   } else if (st === 'setup' || st === 'boarding' || st === 'opening' || st === 'open') {
     // none of the waiting states have a timer — they wait for a person
     timerEl.textContent = 'ממתין';
