@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827d">
+  <link rel="stylesheet" href="css/style.css?v=20260827e">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -256,8 +256,12 @@
     }
     .disp-cell.status-idle::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(84,110,122,.22) 0%, transparent 68%); }
     .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.20) 0%, transparent 68%); }
+    /* Setup has no fixed colour. The whole cell tracks the meter beneath it —
+       orange when the changeover starts, easing to yellow-green as it runs —
+       so the cell and the bar never say different things. Values come from
+       setupProgress() and are written onto the cell as custom properties. */
     .disp-cell.status-setup::before,
-    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.17) 0%, transparent 68%); }
+    .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, var(--meter-glow, rgba(255,152,0,.18)) 0%, transparent 68%); }
     .disp-cell.status-opening::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(230,81,0,.20) 0%, transparent 68%); }
     .disp-cell.status-open::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.22) 0%, transparent 68%); }
     .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(109,20,16,.42) 0%, transparent 68%); }
@@ -266,7 +270,11 @@
     .disp-cell.status-idle::after     { background: var(--idle);    }
     .disp-cell.status-running::after  { background: var(--guest-busy); box-shadow: 0 0 12px var(--guest-busy); }
     .disp-cell.status-setup::after,
-    .disp-cell.status-boarding::after { background: var(--guest-soon); box-shadow: 0 0 12px var(--guest-soon); }
+    .disp-cell.status-boarding::after {
+      background: var(--meter-color, #ff9800);
+      box-shadow: 0 0 12px var(--meter-color, #ff9800);
+      transition: background 1s linear, box-shadow 1s linear;
+    }
     .disp-cell.status-opening::after  { background: var(--guest-soon2); box-shadow: 0 0 12px var(--guest-soon2); }
     .disp-cell.status-open::after     { background: var(--guest-soon);  box-shadow: 0 0 14px var(--guest-soon); }
     .disp-cell.status-closed::after   { background: var(--guest-shut); }
@@ -299,7 +307,7 @@
     .disp-label.status-idle     { color: var(--idle);    }
     .disp-label.status-running  { color: var(--guest-busy); }
     .disp-label.status-setup,
-    .disp-label.status-boarding { color: var(--guest-soon); }
+    .disp-label.status-boarding { color: var(--meter-color, #ff9800); transition: color 1s linear; }
     .disp-label.status-opening  { color: #ff9e66; }
     .disp-label.status-open     { color: var(--guest-soon); }
     .disp-label.status-closed   { color: #ff8a80; background: rgba(109,20,16,.45); box-shadow: none; }
@@ -503,7 +511,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827d"></script>
+<script src="js/utils.js?v=20260827e"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -841,9 +849,19 @@ function renderDisplay() {
     const s     = stations[id];
     const st    = s ? (s.status||'idle') : 'closed';
     cell.className = `disp-cell status-${st}`;
+    if (s && (st === 'setup' || st === 'boarding')) paintSetupCell(cell, s);
     cell.innerHTML = buildCell(s, id);
     disp.appendChild(cell);
   });
+}
+
+// The cell's glow, stripe and label all read these, so the surface and the
+// bar move together instead of drifting apart.
+function paintSetupCell(cell, s) {
+  if (!cell) return;
+  const p = setupProgress(s);
+  cell.style.setProperty('--meter-color', p.color);
+  cell.style.setProperty('--meter-glow',  p.glow(.20));
 }
 
 function buildCell(s, id) {
@@ -993,6 +1011,7 @@ function tickDisplay() {
       const msg  = document.getElementById(`msg-${id}`);
       if (fill) { fill.style.width = p.fill + '%'; fill.style.background = p.color; }
       if (msg && msg.textContent !== p.text) msg.textContent = p.text;
+      paintSetupCell(document.getElementById(`cell-${id}`), s);
 
     } else if (st === 'break' && s.breakEndTime) {
       setTimerText(document.getElementById(`brk-${id}`),

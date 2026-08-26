@@ -267,10 +267,12 @@ function lerpRgb(a, b, t) {
 function setupProgress(s) {
   const started = (s && s.setupStartTime) || 0;
   const t = started ? Math.min(1, (Date.now() - started) / SETUP_METER_MS) : 0;
+  const rgb = SETUP_METER_FROM.map((v, i) => Math.round(v + (SETUP_METER_TO[i] - v) * t));
   return {
-    t,
+    t, rgb,
     fill:  Math.round(t * SETUP_METER_CAP),
-    color: lerpRgb(SETUP_METER_FROM, SETUP_METER_TO, t),
+    color: `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`,
+    glow:  (a) => `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`,
     text:  t >= .8 ? 'כבר ייקראו לכם להיכנס' : 'בקרוב תתחיל פעילות חדשה'
   };
 }
