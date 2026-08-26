@@ -223,6 +223,16 @@ a:hover { text-decoration: underline; }
 .badge--setup    { color:var(--setup);    background:var(--setup-glow);    }
 .badge--closed   { color:var(--closed);   background:var(--closed-glow);   }
 .badge--break    { color:var(--break);    background:var(--break-glow);    }
+.badge--opening  { color:#ff9e66;         background:rgba(230,81,0,.16);   }
+.badge--open     { color:var(--running);  background:var(--running-glow);  }
+
+/* "פתוח לכניסת קהל" blinks so it carries across a room. opacity only, on its
+   own compositor layer — animating box-shadow here is what froze the TV boxes. */
+.badge--open {
+  animation: badge-blink 1.2s ease-in-out infinite;
+  will-change: opacity; transform: translateZ(0);
+}
+@keyframes badge-blink { 0%,100% { opacity:1 } 50% { opacity:.42 } }
 
 /* Pulsing dot for active states */
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.65;transform:scale(1.4)} }

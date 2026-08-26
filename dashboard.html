@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825c">
+  <link rel="stylesheet" href="css/style.css?v=20260827">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -151,6 +151,12 @@
     /* Status colors */
     .color-idle     { color: var(--idle);     }
     .color-boarding { color: var(--setup); }   /* legacy */
+    .color-opening  { color: #ff9e66; }
+    .color-open     { color: var(--running); }
+    .tbl-row.status-opening::before   { background:#e65100; box-shadow:0 0 8px #e65100; }
+    .tbl-row.status-open::before      { background:var(--running); box-shadow:0 0 8px var(--running); }
+    .dash-card.status-opening::before { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:#e65100;box-shadow:0 0 10px #e65100; }
+    .dash-card.status-open::before    { content:'';position:absolute;top:0;right:0;left:0;height:3px;background:var(--running);box-shadow:0 0 10px var(--running); }
     .color-running  { color: var(--running);  }
     .color-setup    { color: var(--setup);    }
     .color-closed   { color: var(--closed);   }
@@ -435,7 +441,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825c"></script>
+<script src="js/utils.js?v=20260827"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -549,7 +555,7 @@ stationsRef().on('value', snap => {
 startAutoTransitionWatcher(() => stations);
 
 function updateSummary() {
-  const counts = { idle:0, running:0, setup:0, closed:0, break:0 };
+  const counts = { idle:0, running:0, setup:0, opening:0, open:0, closed:0, break:0 };
   Object.values(stations).forEach(s => {
     let st = s.status || 'idle';
     if (st === 'boarding') st = 'setup';   // legacy status folds into setup
@@ -676,8 +682,12 @@ function buildCardHTML(s, gridStyle = '') {
     <div class="dash-card__actions">
       <div style="font-size:.63rem;color:var(--text-400);font-weight:600;padding:0 2px 3px;letter-spacing:.04em;">שנה סטטוס</div>
       <div class="actions-row actions-row--status">
-        <button class="btn btn--success" onclick="managerTransition('${s.id}','running')"  title="בפעילות">🟢 פעילות</button>
-        <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"    title="הכנה לפעילות חדשה">🟡 הכנה</button>
+        <button class="btn btn--success" onclick="managerTransition('${s.id}','running')" title="בפעילות">🟢 פעילות</button>
+        <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"   title="הכנה לפעילות חדשה">🟡 הכנה</button>
+        <button class="btn btn--ghost"   style="color:#ff9e66;border-color:rgba(230,81,0,.45);"
+          onclick="managerTransition('${s.id}','opening')" title="ייפתח בקרוב — מומלץ לגשת למעבדות מקבילות">🟠 ייפתח</button>
+        <button class="btn btn--ghost"   style="color:var(--running);border-color:rgba(0,230,118,.45);"
+          onclick="managerTransition('${s.id}','open')"    title="פתוח לכניסת קהל">🚪 פתוח לקהל</button>
       </div>
       <div class="actions-row" style="justify-content:space-between;align-items:center;">
         <span style="font-size:.63rem;color:var(--text-400);font-weight:600;white-space:nowrap;padding-right:2px;">הוסף/הורד זמן</span>
@@ -694,7 +704,7 @@ function buildCardHTML(s, gridStyle = '') {
           title="${st==='break' ? 'לחץ לכיבוי הפסקה' : 'יצאנו להפסקה'}">☕ הפסקה</button>
         <button class="btn btn--ghost btn--sm" style="flex:1;min-width:fit-content;${st==='closed' ? 'background:rgba(244,67,54,.22);border-color:rgba(244,67,54,.55);color:var(--closed);box-shadow:0 0 8px rgba(244,67,54,.2);' : 'color:var(--closed);border-color:rgba(244,67,54,.3);'}"
           onclick="managerTransition('${s.id}', '${st==='closed' ? 'idle' : 'closed'}')"
-          title="${st==='closed' ? 'לחץ לפתיחה מחדש' : 'סגור / תקלה'}">🚫 סגור</button>
+          title="${st==='closed' ? 'לחץ לפתיחה מחדש' : 'סגור'}">🚫 סגור</button>
       </div>
     </div>
   </div>`;
@@ -713,6 +723,8 @@ function buildTableRowHTML(s) {
       <div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
         <button class="btn btn--success" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🟢 פעילות</button>
         <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 הכנה</button>
+        <button class="btn btn--ghost" style="${btnSm};color:#ff9e66;border-color:rgba(230,81,0,.45);" onclick="managerTransition('${s.id}','opening')">🟠 ייפתח</button>
+        <button class="btn btn--ghost" style="${btnSm};color:var(--running);border-color:rgba(0,230,118,.45);" onclick="managerTransition('${s.id}','open')">🚪 פתוח</button>
       </div>
       <div style="display:flex;gap:4px;align-items:center;">
         <button class="btn btn--reduce" style="${btnSm}" onclick="addTime('${s.id}',-2)">2-</button>
@@ -748,17 +760,20 @@ function tickTableRow(id) {
   if (secs) {
     setTimerText(timerEl, secs);
     if (st === 'running') timerEl.style.color = secs < 180 ? 'var(--closed)' : 'var(--running)';
-  } else if (st === 'setup' || st === 'boarding') {
-    // setup has no timer — it waits for the instructor
+  } else if (st === 'setup' || st === 'boarding' || st === 'opening' || st === 'open') {
+    // none of the waiting states have a timer — they wait for a person
     timerEl.textContent = 'ממתין';
-    timerEl.style.color = 'var(--setup)';
+    timerEl.style.color = st === 'open' ? 'var(--running)' : 'var(--setup)';
   } else {
     timerEl.textContent = '--:--';
   }
 
   if (nextEl) {
     // Setup waits for a person, so there is no next-session clock time to show.
-    if (st === 'setup' || st === 'boarding') {
+    if (st === 'open') {
+      nextEl.textContent = 'ממתין לקהל';
+      nextEl.style.color = 'var(--running)';
+    } else if (st === 'setup' || st === 'boarding' || st === 'opening') {
       nextEl.textContent = 'יתחיל בקרוב';
       nextEl.style.color = 'var(--setup)';
     } else {
@@ -800,12 +815,15 @@ function tickCard(id) {
     if (secs === 0) timerEl.className = 'dash-card__timer color-closed';
     else timerEl.className = `dash-card__timer color-${st}`;
 
-  } else if (st === 'setup' || st === 'boarding') {
-    // No countdown — waiting for the instructor to start the next activity
+  } else if (st === 'setup' || st === 'boarding' || st === 'opening' || st === 'open') {
+    // No countdown — all of these wait for a person
+    const lbl = { open:    ['ממתין לקהל', 'color-open',    'פתוח לכניסת קהל'],
+                  opening: ['להתחלה',     'color-opening', 'ייפתח בקרוב'] }[st]
+              || ['להתחלה', 'color-setup', 'הפעילות הבאה תתחיל בקרוב'];
     timerEl.textContent = 'ממתין';
-    timerEl.className   = 'dash-card__timer color-setup';
-    if (labelEl) labelEl.textContent = 'להתחלה';
-    if (nextEl)  nextEl.innerHTML = '<span style="color:var(--setup)">הפעילות הבאה תתחיל בקרוב</span>';
+    timerEl.className   = 'dash-card__timer ' + lbl[1];
+    if (labelEl) labelEl.textContent = lbl[0];
+    if (nextEl)  nextEl.innerHTML = `<span style="color:var(--text-300)">${lbl[2]}</span>`;
     if (progEl)  progEl.style.width = '0%';
     if (delayEl) delayEl.innerHTML = '';
     return;

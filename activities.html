@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>פעילויות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825c">
+  <link rel="stylesheet" href="css/style.css?v=20260827">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#03031a">
@@ -51,6 +51,8 @@
 
     .act-card.status-running::before  { background: var(--running);  box-shadow: 0 0 8px var(--running);  }
     .act-card.status-boarding::before { background: var(--setup); }   /* legacy */
+    .act-card.status-opening::before  { background: #e65100; }
+    .act-card.status-open::before     { background: var(--running); }
     .act-card.status-setup::before    { background: var(--setup);    }
     .act-card.status-idle::before     { background: var(--idle);     }
     .act-card.status-closed::before   { background: var(--closed);   }
@@ -156,6 +158,7 @@
     }
     .detail-sec-btn:active { transform: scale(.95); }
     .detail-sec-btn--closed { background: rgba(244,67,54,.08); border-color: rgba(244,67,54,.28); color: #ef9a9a; }
+    .detail-sec-btn--soon   { background: rgba(230,81,0,.16);  border-color: rgba(230,81,0,.5);   color: #ffb787; }
     .detail-sec-btn--back   { background: rgba(0,230,118,.1);  border-color: rgba(0,230,118,.3);  color: #a5d6a7; }
 
     /* ── Confirm modal overlay ── */
@@ -577,7 +580,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825c"></script>
+<script src="js/utils.js?v=20260827"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -712,6 +715,7 @@ function buildDetailView() {
   // Temporary close is available from every state and is reversible from the
   // state it puts the station into.
   const CLOSE_BTN  = `<button class="detail-sec-btn detail-sec-btn--closed" onclick="goClosed()">🚫 סגור זמנית</button>`;
+  const SOON_BTN   = `<button class="detail-sec-btn detail-sec-btn--soon"   onclick="markOpeningSoon()">🟠 ייפתח בקרוב</button>`;
   const REOPEN_BTN = `<button class="detail-sec-btn detail-sec-btn--back"   onclick="reopenStation()">▶ חזור לפעילות רגילה</button>`;
 
   if (st === 'running' && s.sessionEndTime) {
@@ -727,11 +731,22 @@ function buildDetailView() {
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openPopup()">חזור לפעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
     secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
   } else if (st === 'setup' || st === 'boarding') {
-    // No countdown — the station waits here until the instructor starts the
-    // next activity. ('boarding' is legacy and renders the same way.)
-    infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);font-size:1rem;">⏳ מתארגנים לפעילות הבאה — התחילו כשאתם מוכנים</div>`;
+    // The doors have to be opened before an activity can start — there is no
+    // path straight from setup to running. ('boarding' is legacy.)
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);color:var(--setup);font-size:1rem;">⏳ מתארגנים לפעילות הבאה</div>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openForEntry()">🚪 פתח לכניסת קהל</button>`;
+    secondaryHtml = `<div class="detail-actions-row">${SOON_BTN}${CLOSE_BTN}</div>`;
+
+  } else if (st === 'opening') {
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);color:#ffb787;font-size:1rem;">🟠 מוצג לקהל: ייפתח בקרוב — מומלץ לגשת למעבדות מקבילות</div>`;
+    actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="openForEntry()">🚪 פתח לכניסת קהל</button>`;
+    secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
+
+  } else if (st === 'open') {
+    infoHtml      = `<div class="detail-info-box" style="background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.35);color:var(--running);font-size:1rem;">🟢 פתוח לכניסת קהל — התחילו כשכולם בפנים</div>`;
     actionHtml    = `<button class="btn btn--success detail-start-btn" onclick="startNow()">▶ התחל פעילות חדשה</button>`;
     secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
+
   } else if (st === 'idle') {
     actionHtml    = `<button class="btn btn--success detail-start-btn" id="btn-start" onclick="confirmStart()">התחל פעילות <span style="display:inline-block;transform:rotate(180deg)">▶</span></button>`;
     secondaryHtml = `<div class="detail-actions-row">${CLOSE_BTN}</div>`;
@@ -815,10 +830,36 @@ async function reopenStation() {
   }
 }
 
+// Opening the doors is its own step: the audience needs a moment to walk in
+// before the activity timer starts running against them.
+async function openForEntry() {
+  const s = stations[selectedId];
+  if (!s) return;
+  try {
+    await transitionStation(selectedId, 'open', s, { manual: true });
+    buildDetailView();
+    showToast('🚪 פתוח לכניסת קהל', 'success');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
+async function markOpeningSoon() {
+  const s = stations[selectedId];
+  if (!s) return;
+  try {
+    await transitionStation(selectedId, 'opening', s, { manual: true });
+    buildDetailView();
+    showToast('🟠 מוצג לקהל: ייפתח בקרוב', 'warning');
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  }
+}
+
 async function startNow() {
   const s = stations[selectedId];
   if (!s) return;
-  if (s.status !== 'setup' && s.status !== 'boarding') return;
+  if (s.status !== 'open') return;
   try {
     await transitionStation(selectedId, 'running', s, { manual: true, skip: true });
     openPopup();

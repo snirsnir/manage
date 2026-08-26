@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>מסך אורחים | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825c">
+  <link rel="stylesheet" href="css/style.css?v=20260827">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -14,6 +14,7 @@
       --guest-busy: #f44336;   /* an activity is running — the lab is taken */
       --guest-soon: #00e676;   /* getting ready — a new activity is imminent */
       --guest-shut: #6d1410;   /* closed for the day, must not read as "busy" */
+      --guest-soon2:#e65100;   /* "ייפתח בקרוב" — dark orange, set by hand */
     }
 
     /* ── Full-screen flex layout ── */
@@ -90,18 +91,24 @@
     .board-row.status-running::before  { background:var(--guest-busy); box-shadow:0 0 8px var(--guest-busy); }
     .board-row.status-setup::before,
     .board-row.status-boarding::before { background:var(--guest-soon); box-shadow:0 0 8px var(--guest-soon); }
+    .board-row.status-opening::before  { background:var(--guest-soon2); box-shadow:0 0 8px var(--guest-soon2); }
+    .board-row.status-open::before     { background:var(--guest-soon);  box-shadow:0 0 10px var(--guest-soon); }
     .board-row.status-closed::before   { background:var(--guest-shut); }
     .board-row.status-break::before    { background:var(--break);    }
 
     .board-row.status-running  { border-color:rgba(244,67,54,.32); background:rgba(244,67,54,.05); }
     .board-row.status-setup,
     .board-row.status-boarding { border-color:rgba(0,230,118,.32); background:rgba(0,230,118,.05); }
+    .board-row.status-opening  { border-color:rgba(230,81,0,.38); background:rgba(230,81,0,.06); }
+    .board-row.status-open     { border-color:rgba(0,230,118,.45); background:rgba(0,230,118,.08); }
     .board-row.status-closed   { border-color:rgba(109,20,16,.55); background:rgba(109,20,16,.14); }
 
     /* Badges follow the same inversion, scoped to the board so the staff
        screens keep reading green-for-running from style.css. */
     .board-row .badge--running { color:var(--guest-busy); background:rgba(244,67,54,.12); }
     .board-row .badge--setup   { color:var(--guest-soon); background:rgba(0,230,118,.10); }
+    .board-row .badge--opening { color:#ff9e66; background:rgba(230,81,0,.14); }
+    .board-row .badge--open    { color:var(--guest-soon); background:rgba(0,230,118,.14); }
     .board-row .badge--closed  { color:#ff8a80; background:rgba(109,20,16,.5); border-color:var(--guest-shut); }
     .board-row .badge--running .badge-dot { animation:none; }
 
@@ -370,8 +377,10 @@
       <div class="tut-icon">📊</div>
       <div class="tut-title">מפת הפעילויות</div>
       <div class="tut-text">כל שורה מייצגת מעבדה, והצבע מראה אם כדאי לכם ללכת לשם עכשיו:<br>
-        <strong style="color:var(--guest-busy)">אדום</strong> — פעילות מתקיימת כרגע, המעבדה תפוסה. הטיימר מראה כמה זמן נותר לה.<br>
-        <strong style="color:var(--guest-soon)">ירוק</strong> — בקרוב תתחיל פעילות חדשה. הפס שמתמלא מראה כמה התקדמו בהכנות.<br>
+        <strong style="color:var(--guest-soon)">ירוק מהבהב</strong> — פתוח לכניסת קהל. אפשר להיכנס עכשיו.<br>
+        <strong style="color:#c9d94a">ירוק־צהבהב</strong> — מתארגנים. הפס שמתמלא מראה כמה התקדמו.<br>
+        <strong style="color:#ff9e66">כתום כהה</strong> — ייפתח בקרוב, אבל לא מיד. מומלץ לגשת בינתיים למעבדה מקבילה.<br>
+        <strong style="color:var(--guest-busy)">אדום</strong> — פעילות מתקיימת כרגע, המעבדה תפוסה. הטיימר מראה כמה נותר.<br>
         <strong style="color:#ff8a80">אדום כהה</strong> — המעבדה אינה פעילה היום.</div>
     </div>
 
@@ -404,7 +413,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825c"></script>
+<script src="js/utils.js?v=20260827"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations   = {};
@@ -507,7 +516,7 @@ stationsRef().on('value', snap => {
 function getSortedStations() {
   return Object.values(stations).sort((a, b) => {
     // Sort: running first, then the labs waiting to start, then the rest
-    const priority = { running:0, setup:1, boarding:1, idle:3, break:4, closed:5 };
+    const priority = { open:0, setup:1, boarding:1, opening:2, running:3, idle:4, break:5, closed:6 };
     const pa = priority[a.status||'idle'] ?? 3;
     const pb = priority[b.status||'idle'] ?? 3;
     if (pa !== pb) return pa - pb;
@@ -562,7 +571,9 @@ function buildRow(s) {
   if (st === 'running' && s.sessionEndTime) {
     const secs = Math.max(0, Math.round((s.sessionEndTime - now)/1000));
     timerHtml = `<span class="row-time" id="t-${s.id}">${timerCells(secs)}</span>`;
-  } else if (st === 'setup' || st === 'boarding') {
+  } else if (st === 'open') {
+    timerHtml = `<span class="row-time" style="color:var(--guest-soon);font-size:1.05rem">היכנסו</span>`;
+  } else if (st === 'setup' || st === 'boarding' || st === 'opening') {
     timerHtml = `<span class="row-time" style="color:var(--setup);font-size:1.05rem">ממתין</span>`;
   } else if (st === 'break' && s.breakEndTime) {
     const secs = Math.max(0, Math.round((s.breakEndTime - now)/1000));
@@ -571,7 +582,7 @@ function buildRow(s) {
 
   // The meter badge already says the next activity is coming, so this column
   // would only repeat it.
-  if (st === 'setup' || st === 'boarding') {
+  if (st === 'setup' || st === 'boarding' || st === 'opening' || st === 'open') {
     nextHtml = `<span class="row-next" style="color:var(--text-400)">—</span>`;
   } else if (s.nextSessionTime) {
     const minsUntil = Math.round((s.nextSessionTime - now)/60000);

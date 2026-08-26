@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>הצגה בכניסה למעבדות | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260825c">
+  <link rel="stylesheet" href="css/style.css?v=20260827">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     body { background: var(--bg-0); }
@@ -201,6 +201,7 @@
       --guest-busy: #f44336;
       --guest-soon: #00e676;
       --guest-shut: #6d1410;
+      --guest-soon2:#e65100;   /* "ייפתח בקרוב" */
     }
 
     #display {
@@ -257,6 +258,8 @@
     .disp-cell.status-running::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(244,67,54,.20) 0%, transparent 68%); }
     .disp-cell.status-setup::before,
     .disp-cell.status-boarding::before { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.17) 0%, transparent 68%); }
+    .disp-cell.status-opening::before  { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(230,81,0,.20) 0%, transparent 68%); }
+    .disp-cell.status-open::before     { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0,230,118,.22) 0%, transparent 68%); }
     .disp-cell.status-closed::before   { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(109,20,16,.42) 0%, transparent 68%); }
     .disp-cell.status-break::before    { background: radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255,152,0,.2) 0%, transparent 68%); }
 
@@ -264,6 +267,8 @@
     .disp-cell.status-running::after  { background: var(--guest-busy); box-shadow: 0 0 12px var(--guest-busy); }
     .disp-cell.status-setup::after,
     .disp-cell.status-boarding::after { background: var(--guest-soon); box-shadow: 0 0 12px var(--guest-soon); }
+    .disp-cell.status-opening::after  { background: var(--guest-soon2); box-shadow: 0 0 12px var(--guest-soon2); }
+    .disp-cell.status-open::after     { background: var(--guest-soon);  box-shadow: 0 0 14px var(--guest-soon); }
     .disp-cell.status-closed::after   { background: var(--guest-shut); }
     .disp-cell.status-break::after    { background: var(--break);   }
 
@@ -295,7 +300,17 @@
     .disp-label.status-running  { color: var(--guest-busy); }
     .disp-label.status-setup,
     .disp-label.status-boarding { color: var(--guest-soon); }
+    .disp-label.status-opening  { color: #ff9e66; }
+    .disp-label.status-open     { color: var(--guest-soon); }
     .disp-label.status-closed   { color: #ff8a80; background: rgba(109,20,16,.45); box-shadow: none; }
+
+    /* "פתוח לכניסת קהל" blinks — opacity only, own layer. Animating the glow
+       here is exactly what locked up the TV boxes before. */
+    .disp-cell.status-open .disp-label {
+      animation: disp-open-blink 1.2s ease-in-out infinite;
+      will-change: opacity; transform: translateZ(0);
+    }
+    @keyframes disp-open-blink { 0%,100% { opacity:1 } 50% { opacity:.38 } }
     .disp-label.status-break    { color: var(--break);   }
     /* was pulsing box-shadow to a 68px blur on every boarding cell at once */
     @keyframes pulse-disp {
@@ -488,7 +503,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260825c"></script>
+<script src="js/utils.js?v=20260827"></script>
 <script src="js/theme.js"></script>
 <script>
 let stations    = {};
@@ -864,6 +879,19 @@ function buildCell(s, id) {
           <div class="disp-meter-fill" id="mtr-${id}"
                style="width:${p.fill}%;background:${p.color}"></div>
         </div>
+      </div>`;
+  } else if (st === 'opening') {
+    // Says "soon" but explicitly sends people elsewhere, so it carries no
+    // meter — a filling bar would undercut the advice.
+    mid = `${header}<div class="disp-icon">🟠</div>
+      <div class="disp-label status-opening">ייפתח בקרוב</div>
+      <div class="disp-next">
+        <div class="disp-next-msg">מומלץ לגשת בינתיים למעבדות מקבילות</div>
+      </div>`;
+  } else if (st === 'open') {
+    mid = `${header}<div class="disp-icon">🟢</div>${label}
+      <div class="disp-next">
+        <div class="disp-next-msg">הכניסה פתוחה — אפשר להיכנס עכשיו</div>
       </div>`;
   } else if (st === 'break') {
     const secs = s.breakEndTime ? Math.max(0,Math.round((s.breakEndTime-now)/1000)) : 1800;

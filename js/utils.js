@@ -9,7 +9,11 @@ const STATUS = {
   // legacy — boarding is out of the flow; the watcher migrates leftovers to
   // setup, but a station can still render once before that lands.
   boarding: { label: 'הכנה לפעילות חדשה', css: 'setup',    icon: '🟡' },
-  closed:   { label: 'סגור / תקלה',        css: 'closed',   icon: '🔴' },
+  // Both set by hand — neither has a timer, so a station sits in them until
+  // an instructor or the shift manager moves it on.
+  opening:  { label: 'ייפתח בקרוב - מומלץ לגשת למעבדות מקבילות', css: 'opening', icon: '🟠' },
+  open:     { label: 'פתוח לכניסת קהל',    css: 'open',     icon: '🟢' },
+  closed:   { label: 'סגור',               css: 'closed',   icon: '🚫' },
   break:    { label: 'הפסקה',              css: 'break',    icon: '☕' }
 };
 
@@ -18,6 +22,8 @@ const STATUS_COLORS = {
   running:  '#00e676',   // ירוק
   setup:    '#ffc107',   // צהוב
   boarding: '#ffc107',   // legacy, renders as setup
+  opening:  '#e65100',   // כתום כהה
+  open:     '#00e676',   // ירוק — מהבהב
   closed:   '#f44336',
   break:    '#ff9800'    // כתום
 };
@@ -194,6 +200,11 @@ async function transitionStation(stationId, newStatus, station, extraData = {}) 
     update.setupEndTime    = 0;
     update.sessionEndTime  = 0;
     update.nextSessionTime = 0;
+  } else if (newStatus === 'opening' || newStatus === 'open') {
+    // Manual waiting states. setupStartTime is left alone so the meter keeps
+    // its anchor if the station is moved back to setup.
+    update.sessionEndTime  = 0;
+    update.nextSessionTime = 0;
   } else if (newStatus === 'break') {
     update.breakStartTime = now;
     update.breakEndTime   = now + 30 * 60 * 1000;
@@ -241,10 +252,12 @@ async function extendSession(stationId, station, extraMinutes) {
 // this measures time ELAPSED since setup began, and stops short of full —
 // filling it completely would promise a finish nothing guarantees, and an
 // instructor who runs long would leave a full bar sitting there.
-const SETUP_METER_MS  = 7 * 60 * 1000;
+const SETUP_METER_MS  = 10 * 60 * 1000;
 const SETUP_METER_CAP = 90;          // percent — never reads as "done"
 const SETUP_METER_FROM = [255, 152, 0];   // orange
-const SETUP_METER_TO   = [0, 230, 118];   // green
+// Ends yellow-green, not green: pure green belongs to 'open' now, and two
+// different states must not arrive at the same colour.
+const SETUP_METER_TO   = [168, 217, 74];
 
 function lerpRgb(a, b, t) {
   const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
