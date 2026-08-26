@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>דאשבורד | טכנושף</title>
-  <link rel="stylesheet" href="css/style.css?v=20260827b">
+  <link rel="stylesheet" href="css/style.css?v=20260827c">
   <script>(function(){var t=localStorage.getItem('tcTheme'),a=localStorage.getItem('tcAccent');if(t==='light')document.documentElement.setAttribute('data-theme','light');if(a&&a!=='cyan')document.documentElement.setAttribute('data-accent',a);})();</script>
   <style>
     .dashboard-header {
@@ -137,7 +137,13 @@
     }
     .dash-card__actions .btn { font-size: .72rem; padding: 5px 8px; border-radius: var(--r-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .actions-row { display: flex; gap: 5px; }
-    .actions-row--status .btn { flex: 1; min-width: 0; font-size: .68rem; }
+    /* The status labels spell themselves out now, so let the row wrap to a
+       second line rather than squeezing four buttons across one. */
+    .actions-row--status { flex-wrap: wrap; }
+    .actions-row--status .btn {
+      flex: 1 1 46%; min-width: 0; font-size: .66rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .btn--reduce {
       background: rgba(244, 67, 54, 0.1); color: #ff8a80;
       border: 1px solid rgba(244, 67, 54, 0.25);
@@ -441,7 +447,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js?v=20260827b"></script>
+<script src="js/utils.js?v=20260827c"></script>
 <script src="js/theme.js"></script>
 <script>
 initOfflineDetector();
@@ -682,12 +688,12 @@ function buildCardHTML(s, gridStyle = '') {
     <div class="dash-card__actions">
       <div style="font-size:.63rem;color:var(--text-400);font-weight:600;padding:0 2px 3px;letter-spacing:.04em;">שנה סטטוס</div>
       <div class="actions-row actions-row--status">
-        <button class="btn btn--success" onclick="managerTransition('${s.id}','running')" title="בפעילות">🟢 פעילות</button>
-        <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"   title="הכנה לפעילות חדשה">🟡 הכנה</button>
+        <button class="btn btn--ghost"  style="color:var(--running);border-color:rgba(0,230,118,.5);"
+          onclick="managerTransition('${s.id}','open')"    title="פתוח לכניסת קהל">🚪 פתח לקהל</button>
+        <button class="btn btn--danger"  onclick="managerTransition('${s.id}','running')" title="בפעילות">🔴 בפעילות</button>
+        <button class="btn btn--warning" onclick="managerTransition('${s.id}','setup')"   title="הכנה לפעילות חדשה">🟡 בהכנה לפעילות</button>
         <button class="btn btn--ghost"   style="color:#ff9e66;border-color:rgba(230,81,0,.45);"
-          onclick="managerTransition('${s.id}','opening')" title="מוצג לקהל: נסו מעבדה מקבילה">🟠 הפנה</button>
-        <button class="btn btn--ghost"   style="color:var(--running);border-color:rgba(0,230,118,.45);"
-          onclick="managerTransition('${s.id}','open')"    title="פתוח לכניסת קהל">🚪 פתוח לקהל</button>
+          onclick="managerTransition('${s.id}','opening')" title="מוצג לקהל: נסו מעבדה מקבילה">🟠 הפנה למעבדה מקבילה</button>
       </div>
       <div class="actions-row" style="justify-content:space-between;align-items:center;">
         <span style="font-size:.63rem;color:var(--text-400);font-weight:600;white-space:nowrap;padding-right:2px;">הוסף/הורד זמן</span>
@@ -721,10 +727,10 @@ function buildTableRowHTML(s) {
       <div><span class="badge badge--${st}"><span class="badge-dot"></span>${STATUS[st].label}</span></div>
       <div class="tbl-timer color-${st}" id="tbl-timer-${s.id}">--:--</div>
       <div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
-        <button class="btn btn--success" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🟢 פעילות</button>
-        <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 הכנה</button>
-        <button class="btn btn--ghost" style="${btnSm};color:#ff9e66;border-color:rgba(230,81,0,.45);" onclick="managerTransition('${s.id}','opening')">🟠 הפנה</button>
-        <button class="btn btn--ghost" style="${btnSm};color:var(--running);border-color:rgba(0,230,118,.45);" onclick="managerTransition('${s.id}','open')">🚪 פתוח</button>
+        <button class="btn btn--ghost" style="${btnSm};color:var(--running);border-color:rgba(0,230,118,.5);" onclick="managerTransition('${s.id}','open')">🚪 פתח לקהל</button>
+        <button class="btn btn--danger" style="${btnSm}" onclick="managerTransition('${s.id}','running')">🔴 בפעילות</button>
+        <button class="btn btn--warning" style="${btnSm}" onclick="managerTransition('${s.id}','setup')">🟡 בהכנה</button>
+        <button class="btn btn--ghost" style="${btnSm};color:#ff9e66;border-color:rgba(230,81,0,.45);" onclick="managerTransition('${s.id}','opening')">🟠 הפנה למקבילה</button>
       </div>
       <div style="display:flex;gap:4px;align-items:center;">
         <button class="btn btn--reduce" style="${btnSm}" onclick="addTime('${s.id}',-2)">2-</button>
